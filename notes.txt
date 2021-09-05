@@ -24,6 +24,9 @@ Procedure:
 - make graph edge between every input password and resulting password and the applied rule
 - repeat for every node in the resulting graph, though tacking care not to use a rule on a password again (i.e., where an edge already exists)
 
+- track which rules and which passwords are being successful (matching something from the original passwords list; use a hashmap to find out), and prefer those (how?)
+  - make a priority queue so successful passwords/rules are explored earlier?
+
 
 Run:
 LD_LIBRARY_PATH=../libneo4j-client-v4-install/lib/ ./gengraph ../passwords.txt rules/best64.rul
