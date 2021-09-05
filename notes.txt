@@ -1,0 +1,23 @@
+
+cd hashcat
+make libhashcat.so.6.2.4
+...produces hashcat/libhashcat.so.6.2.4
+
+neo4j:
+
+git clone https://github.com/majensen/libneo4j-client.git libneo4j-client-v4
+cd libneo4j-client-v4
+./autogen.sh
+./configure --prefix=`pwd`/../libneo4j-client-v4-install --disable-tools --disable-werror
+make install
+
+docs: https://neo4j-client.net/doc/latest/neo4j-client_8h.html
+
+
+Procedure:
+
+- start with initial list of passwords
+- run hashcat -stdout with set of rules (say, base64)
+- make graph edge between every input password and resulting password and the applied rule
+- repeat for every node in the resulting graph, though tacking care not to use a rule on a password again (i.e., where an edge already exists)
+
