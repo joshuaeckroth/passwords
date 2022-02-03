@@ -29,5 +29,5 @@ Procedure:
 
 
 Run:
-LD_LIBRARY_PATH=../libneo4j-client-v4-install/lib/ ./gengraph ../passwords.txt rules/best64.rul
+LD_LIBRARY_PATH=../libneo4j-client-v4-install/lib/ ./gengraph ../passwords.txt rules/best64.rule
 
