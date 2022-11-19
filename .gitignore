@@ -1,0 +1,13 @@
+*.o
+*.so
+*.dll
+*.exe
+*.dylib
+*.out
+*.dSYM
+external/hashcat/*
+external/libneo4j-client-v4/*
+external/libneo4j-client-v4-install/*
+external/*
+!external/install.sh
+
