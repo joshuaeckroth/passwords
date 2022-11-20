@@ -15,6 +15,7 @@ class Rule {
         unsigned int get_weight(void) const;
         std::string apply_rule(std::string) const;
         void adjust_weight(int);
+        void reset_weight(void);
         bool operator<(const Rule &r) const;
         friend std::ostream& operator<<(std::ostream &os, const Rule &r);
 };
