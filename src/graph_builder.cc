@@ -36,6 +36,15 @@ void GraphBuilder::build(size_t rule_try_cnt, PasswordNode node, size_t itr) {
         string rule_raw = r.get_rule_raw();
         //cout << "2 trying rule_raw: " << rule_raw << endl;
         string new_pw = r.apply_rule(node.password);
+        if(new_pw == node.password) {
+            //cout << "Ignoring " << rule_raw << " on " << node.password << " = " << new_pw << endl;
+            unsigned int current_weight = r.get_weight();
+            if (((int) current_weight + RULE_SCORE_DECAY_VALUE) >= 1) {
+                r.adjust_weight(RULE_SCORE_DECAY_VALUE);
+                this->rule_weight_sum += RULE_SCORE_DECAY_VALUE;
+            }
+            continue;
+        }
         this->steps++;
         if (this->target_pw_set.contains(new_pw)) {
             cout << "2 Applying rule " << rule_raw << " to " << node.password << " hit target " << new_pw << endl;
@@ -69,6 +78,15 @@ void GraphBuilder::build(void) {
             string rule_raw = r.get_rule_raw();
             //cout << "Trying rule: " << rule_raw << endl;
             string new_pw = r.apply_rule(pw);
+            if(new_pw == pw) {
+                //cout << "Ignoring " << rule_raw << " on " << pw << " = " << new_pw << endl;
+                unsigned int current_weight = r.get_weight();
+                if (((int) current_weight + RULE_SCORE_DECAY_VALUE) >= 1) {
+                    r.adjust_weight(RULE_SCORE_DECAY_VALUE);
+                    this->rule_weight_sum += RULE_SCORE_DECAY_VALUE;
+                }
+                continue;
+            }
             reset_rule_weights_counter--;
             if(reset_rule_weights_counter <= 0) {
                 reset_rule_weights_counter = RESET_RULE_WEIGHTS_COUNTER_INIT;

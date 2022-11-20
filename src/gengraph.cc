@@ -32,7 +32,7 @@ int main(int argc, const char** argv) {
     Graph *gp = new Graph;
     GraphBuilder gb(gp, rules, passwords);
     gb.build();
-    cout << *gp << endl;
+    //cout << *gp << endl;
     GraphDBWriter writer;
     bool did_connect = writer.connect();
     writer.submit(gp);
