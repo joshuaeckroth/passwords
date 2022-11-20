@@ -18,7 +18,7 @@ string Rule::get_rule_raw() const {
     return this->raw;
 }
 
-unsigned int Rule::get_weight() const {
+float Rule::get_weight() const {
     return this->weight;
 }
 
@@ -35,12 +35,12 @@ string Rule::apply_rule(string password) const {
     return result;
 }
 
-void Rule::adjust_weight(int adjustment) {
-    this->weight += adjustment;
+void Rule::decay_weight() {
+    this->weight *= 0.99999;
 }
 
 void Rule::reset_weight(void) {
-    this->weight = 1;
+    this->weight = 1.0;
 }
 
 bool Rule::operator<(const Rule &r) const {

@@ -20,6 +20,7 @@ class Graph {
         void new_edge(PasswordNode, std::string, PasswordNode);
         void new_edge_and_child(PasswordNode, std::string, PasswordNode);
         void merge_with(const Graph &g);
+        int node_count() const;
         friend std::ostream& operator<<(std::ostream &os, const Graph &graph);
 };
 

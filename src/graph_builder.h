@@ -9,7 +9,9 @@
 #include "password_node.h"
 #include "rule.h"
 
-#define RESET_RULE_WEIGHTS_COUNTER_INIT 100000
+class GraphDBWriter;
+
+#define RESET_RULE_WEIGHTS_COUNTER_INIT 10000000
 
 class GraphBuilder {
     private:
@@ -17,7 +19,6 @@ class GraphBuilder {
         std::vector<std::string> target_pws;
         std::unordered_set<std::string> target_pw_set;
         std::vector<Rule> rules;
-        size_t rule_weight_sum;
         size_t steps = 0;
         size_t hits = 0;
         int reset_rule_weights_counter = RESET_RULE_WEIGHTS_COUNTER_INIT;
@@ -26,7 +27,7 @@ class GraphBuilder {
         void reset_rule_weights(void);
     public:
         GraphBuilder(Graph*, std::vector<Rule> rules, std::vector<std::string>);
-        void build(void);
+        void build(GraphDBWriter *);
 
 };
 

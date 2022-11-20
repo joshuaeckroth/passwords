@@ -20,6 +20,10 @@ bool Graph::node_exists(PasswordNode node) const {
     return this->adj_list.contains(node);
 }
 
+int Graph::node_count() const {
+    return this->adj_list.size();
+}
+
 void Graph::new_node(PasswordNode node) {
     set<pair<string, PasswordNode>> empty_set;
     this->adj_list.insert({node, empty_set});

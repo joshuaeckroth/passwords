@@ -31,11 +31,11 @@ int main(int argc, const char** argv) {
     // print_seq(passwords);
     Graph *gp = new Graph;
     GraphBuilder gb(gp, rules, passwords);
-    gb.build();
     //cout << *gp << endl;
     GraphDBWriter writer;
+    gb.build(&writer);
     bool did_connect = writer.connect();
-    writer.submit(gp);
+    //writer.submit(gp);
     cout << "Connected to Neo4j? " << ((did_connect) ? "true" : "false") << endl;
     return 0;
 }
