@@ -18,7 +18,7 @@ string Rule::get_rule_raw() const {
     return this->raw;
 }
 
-int Rule::get_weight() const {
+unsigned int Rule::get_weight() const {
     return this->weight;
 }
 

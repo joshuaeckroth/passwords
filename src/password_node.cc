@@ -15,6 +15,6 @@ bool PasswordNode::operator==(const PasswordNode &node) const {
 }
 
 std::ostream& operator<<(std::ostream &os, const PasswordNode &node) {
-    os << "PASSWORD:" << node.password << "TARGET?:" << ((node.is_target) ? "true" : "false");
+    os << "PASSWORD: " << node.password << " TARGET?: " << ((node.is_target) ? "true" : "false");
     return os;
 }

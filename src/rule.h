@@ -7,15 +7,14 @@
 class Rule {
     private:
         const std::string raw;
-        int weight = 0;
+        unsigned int weight = 1; // don't decay past 1
     public:
         Rule(std::string);
         Rule(const char*);
         std::string get_rule_raw(void) const;
-        int get_weight(void) const;
+        unsigned int get_weight(void) const;
         std::string apply_rule(std::string) const;
         void adjust_weight(int);
-        // TODO: Implement score decay here?
         bool operator<(const Rule &r) const;
         friend std::ostream& operator<<(std::ostream &os, const Rule &r);
 };

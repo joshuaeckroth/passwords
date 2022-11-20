@@ -33,6 +33,7 @@ int main(int argc, const char** argv) {
     PasswordNode n2(passwords[1], false);
     pw_graph.new_node(n1);
     pw_graph.new_edge_and_child(n1, rules[0].get_rule_raw(), n2);
+    cout << pw_graph << endl;
     
     //cout << pw_graph.get_adj_list()[PasswordNode(passwords[0], true)].contains(pair<string, PasswordNode>(rules[0].get_rule_raw(), PasswordNode(passwords[1], false))) << endl;
 

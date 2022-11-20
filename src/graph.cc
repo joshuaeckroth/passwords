@@ -1,5 +1,6 @@
 #include <set> 
 #include <string>
+#include <iostream>
 #include <unordered_map>
 #include <utility>
 #include <stdexcept>
@@ -7,11 +8,11 @@
 #include "password_node_hash.h"
 #include "graph.h"
 
-using std::string, std::pair, std::set;
+using std::string, std::pair, std::set, std::endl;
 
 Graph::Graph() {}
 
-std::unordered_map<PasswordNode, set<pair<string, PasswordNode>>, PasswordNodeHash, PasswordNodeEqual> Graph::get_adj_list(void) {
+std::unordered_map<PasswordNode, set<pair<string, PasswordNode>>, PasswordNodeHash, PasswordNodeEqual> Graph::get_adj_list(void) const {
     return this->adj_list;
 }
 
@@ -48,3 +49,16 @@ void Graph::new_edge_and_child(PasswordNode parent_node, string rule_edge, Passw
 void Graph::merge_with(const Graph &g) {
     return;
 }
+
+std::ostream& operator<<(std::ostream &os, const Graph &graph) {
+    os << "=== GRAPH START ===\n";
+    for (auto kv : graph.get_adj_list()) {
+        os << "NODE: " << kv.first << "\n";
+        for (auto edge_node : kv.second) {
+           os << "\t=== " << edge_node.first << " ===> " << edge_node.second.password << "\n";
+        }
+    }
+    os << "=== GRAPH END ===" << endl;
+    return os;
+}
+
