@@ -13,6 +13,15 @@ vector<string> PasswordLoader::load_passwords(const char *path) {
         cerr << "Couldn't open passwords file: " << strerror(errno) << endl;
         throw std::runtime_error(strerror(errno));
     }
+    char *pw = nullptr;
+    size_t line_restrict = 0;
     vector<string> pw_vec;
+    while (getline(&pw, &line_restrict, fp_passwords) != -1) {
+        pw[strlen(pw)-1] = 0; // cut off delim
+        pw_vec.push_back(string(pw));
+        pw = nullptr;
+    }
+    free(pw);
+    fclose(fp_passwords);
     return pw_vec;
 }

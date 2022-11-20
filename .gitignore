@@ -5,6 +5,7 @@
 *.dylib
 *.out
 *.dSYM
+src/tags/*
 external/hashcat/*
 external/libneo4j-client-v4/*
 external/libneo4j-client-v4-install/*

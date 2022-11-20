@@ -18,12 +18,21 @@ CFLAGS_NATIVE_PW += -I ../external/hashcat/include -I ../external/hashcat/deps/L
 NEO4J_FLAGS = $(shell PKG_CONFIG_PATH=/opt/homebrew/opt/openssl@1.1/lib/pkgconfig:../external/libneo4j-client-v4-install/lib/pkgconfig/ pkg-config --cflags --libs neo4j-client)
 HC_ARCHIVE = ../external/hashcat/obj/combined.NATIVE.a
 
-GENGRAPH_SRCS = rule.cc util.cc rule_loader.cc password_loader.cc
+GENGRAPH_SRCS = rule.cc util.cc rule_loader.cc password_loader.cc password_node.cc graph.cc password_node_hash.cc
 GENGRAPH_OBJS = $(subst .cc,.o,$(GENGRAPH_SRCS))
 BIN = ../bin/
 
 rule.o: rule.cc rule.h #obj/combined.NATIVE.a
 	$(CXX) $(CXXFLAGS) $(CFLAGS_NATIVE_PW) $(LFLAGS_NATIVE) -c rule.cc $(HC_ARCHIVE)
+
+password_node.o: password_node.cc password_node.h
+	$(CXX) $(CXXFLAGS) $(CFLAGS_NATIVE_PW) $(LFLAGS_NATIVE) -c password_node.cc
+
+password_node_hash.o: password_node_hash.cc password_node_hash.h password_node.h
+	$(CXX) $(CXXFLAGS) $(CFLAGS_NATIVE_PW) $(LFLAGS_NATIVE) -c password_node_hash.cc
+
+graph.o: graph.cc graph.h password_node.h password_node_hash.h
+	$(CXX) $(CXXFLAGS) $(CFLAGS_NATIVE_PW) $(LFLAGS_NATIVE) -c graph.cc
 
 rule_loader.o: rule_loader.cc rule_loader.h rule.h
 	$(CXX) $(CXXFLAGS) $(CFLAGS_NATIVE_PW) -c rule_loader.cc

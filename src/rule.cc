@@ -12,9 +12,7 @@ using std::string, std::endl, std::cout;
 
 Rule::Rule(string s) : raw(s) {}
 
-Rule::Rule(const char* s) {
-    this->raw = string(s);
-}
+Rule::Rule(const char* s) : raw(string(s)) {}
 
 string Rule::get_rule_raw() const {
     return this->raw;

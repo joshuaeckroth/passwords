@@ -6,7 +6,7 @@
 
 class Rule {
     private:
-        std::string raw;
+        const std::string raw;
         int weight = 0;
     public:
         Rule(std::string);

@@ -2,6 +2,7 @@
 #define UTIL_H
 
 #include <iostream>
+#include <climits>
 
 #define ANSI_RED "\033[1;31m"
 #define ANSI_BLUE "\033[1;36m"
@@ -18,6 +19,18 @@ template<typename Q>
 void print_queue(Q q) {
     for (; !q.empty(); q.pop()) {
         std::cout << q.top() << "\n";
+    }
+    std::cout << std::endl;
+}
+
+template<typename T>
+void print_seq(T seq, int limit = INT_MAX) {
+    int i = 0;
+    for (auto ele : seq) {
+        std::cout << ele << "\n";
+        if (limit < i++) {
+            break;
+        }
     }
     std::cout << std::endl;
 }
