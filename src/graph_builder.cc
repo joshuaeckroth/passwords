@@ -24,7 +24,7 @@ GraphBuilder::GraphBuilder(Graph *gp, vector<Rule> rules, vector<string> passwor
  * that didn't hit a target password.  Repeat on generated children until out
  * of rules to apply.
  */
-void GraphBuilder::build(size_t rule_try_cnt, PasswordNode node) {
+void GraphBuilder::build(size_t rule_try_cnt, PasswordNode node, size_t itr) {
     cout << "trying node.password: " << node.password.size() << endl;
     for (size_t i = 0; i < rule_try_cnt; i++) {
         Rule &r = rnd_weighted_select();
@@ -37,23 +37,23 @@ void GraphBuilder::build(size_t rule_try_cnt, PasswordNode node) {
             this->hits++;
             r.adjust_weight(PW_HIT_WEIGHT_INCREASE);
             this->rule_weight_sum += PW_HIT_WEIGHT_INCREASE;
-            this->gp->new_edge(node, rule_raw, PasswordNode(new_pw, true));
+            this->gp->new_edge(node, rule_raw, PasswordNode(new_pw, true, 0)); // 0 for iteration because target
         } else {
             unsigned int current_weight = r.get_weight();
             if (((int) current_weight + RULE_SCORE_DECAY_VALUE) >= 1) {
                 r.adjust_weight(RULE_SCORE_DECAY_VALUE);
                 this->rule_weight_sum += RULE_SCORE_DECAY_VALUE;
             }
-            auto new_miss_node = PasswordNode(new_pw, false);
-            this->gp->new_edge_and_child(node, rule_raw, PasswordNode(new_pw, false));
-            this->build(rule_try_cnt / 2, new_miss_node);
+            auto new_miss_node = PasswordNode(new_pw, false, itr);
+            this->gp->new_edge_and_child(node, rule_raw, PasswordNode(new_pw, false, itr));
+            this->build(rule_try_cnt / 2, new_miss_node, itr + 1);
         }
     }
 }
 
 void GraphBuilder::build(void) {
     for (auto pw : this->target_pws) {
-        this->gp->new_node(PasswordNode(pw, true));
+        this->gp->new_node(PasswordNode(pw, true, 0));
         this->target_pw_set.insert(pw);
     }
     for (auto pw : this->target_pws) {
@@ -71,7 +71,7 @@ void GraphBuilder::build(void) {
                 this->hits++;
                 r.adjust_weight(PW_HIT_WEIGHT_INCREASE);
                 this->rule_weight_sum += PW_HIT_WEIGHT_INCREASE;
-                this->gp->new_edge(PasswordNode(pw, true), rule_raw, PasswordNode(new_pw, true));
+                this->gp->new_edge(PasswordNode(pw, true, 0), rule_raw, PasswordNode(new_pw, true, 1));
                 // don't go further down this path, since new_pw is a target node it will already get rules applied to it
                 cout << "made it here" << endl;
             } else {
@@ -80,9 +80,9 @@ void GraphBuilder::build(void) {
                     r.adjust_weight(RULE_SCORE_DECAY_VALUE);
                     this->rule_weight_sum += RULE_SCORE_DECAY_VALUE;
                 }
-                auto new_miss_node = PasswordNode(new_pw, false);
-                this->gp->new_edge_and_child(PasswordNode(pw, true), rule_raw, new_miss_node);
-                this->build(rule_try_count / 2, new_miss_node);
+                auto new_miss_node = PasswordNode(new_pw, false, 1);
+                this->gp->new_edge_and_child(PasswordNode(pw, true, 0), rule_raw, new_miss_node);
+                this->build(rule_try_count / 2, new_miss_node, 2);
             }
         }
     }

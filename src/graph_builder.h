@@ -19,7 +19,7 @@ class GraphBuilder {
         size_t steps = 0;
         size_t hits = 0;
         Rule& rnd_weighted_select(void);
-        void build(size_t, PasswordNode);
+        void build(size_t, PasswordNode, size_t);
         void reset_rule_weights(void);
     public:
         GraphBuilder(Graph*, std::vector<Rule> rules, std::vector<std::string>);

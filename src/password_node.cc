@@ -4,7 +4,7 @@
 
 using std::string;
 
-PasswordNode::PasswordNode(string s, bool is_target) : password(s), is_target(is_target) {}
+PasswordNode::PasswordNode(string s, bool is_target, size_t iteration) : password(s), is_target(is_target), iteration(iteration) {}
 
 bool PasswordNode::operator<(const PasswordNode &node) const {
     return this->password < node.password;

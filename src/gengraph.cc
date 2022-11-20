@@ -36,6 +36,7 @@ int main(int argc, const char** argv) {
     cout << *gp << endl;
     GraphDBWriter writer;
     bool did_connect = writer.connect();
+    writer.submit(gp);
     cout << "Connected to Neo4j? " << ((did_connect) ? "true" : "false") << endl;
     return 0;
 }
