@@ -1,11 +1,12 @@
 #include <string>
+#include <cstring>
 #include <vector>
 #include <iostream>
 #include <errno.h>
 #include <stdio.h>
 #include "rule_loader.h"
 
-using std::cout, std::cerr, std::endl, std::string, std::vector;
+using std::cout, std::cerr, std::endl, std::string, std::vector, std::strerror, std::strlen;
 
 std::vector<Rule> RuleLoader::load_rules(const char *path) {
     FILE *fp_rules;

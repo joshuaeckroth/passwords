@@ -23,13 +23,13 @@ unsigned int Rule::get_weight() const {
 }
 
 string Rule::apply_rule(string password) const {
-    char *pw_cstr = (char*) calloc(password.size(), sizeof(char));
+    char *pw_cstr = (char*) calloc(password.size()+1, sizeof(char)); // +1 to make space for \0
     strcpy(pw_cstr, password.c_str());
     char new_password[RP_PASSWORD_SIZE];
 //    cout << "raw rule is: " << this->raw << endl;
 //    cout << "RP_PASSWORD_SIZE is: " << RP_PASSWORD_SIZE << endl;
 //    cout << "password size is: " << password.size() << endl;
-    _old_apply_rule(this->raw.c_str(), this->raw.size(), pw_cstr, password.size(), new_password); 
+    _old_apply_rule(this->raw.c_str(), this->raw.size(), pw_cstr, password.size(), new_password);
     string result(new_password);
     free(pw_cstr);
     return result;

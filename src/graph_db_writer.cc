@@ -40,7 +40,7 @@ bool GraphDBWriter::connect() {
 void GraphDBWriter::submit(Graph *gp) {
     // create tsv node header for bulk import to Neo4j
     std::fstream f_node_header;
-    f_node_header.open("../results/neo4j_node_header_import.tsv", std::ios::out);
+    f_node_header.open("results/neo4j_node_header_import.tsv", std::ios::out);
     if (!f_node_header) {
         cout << "Could not create neo4j_node_header_import.tsv" << endl;
     } else {
@@ -50,7 +50,7 @@ void GraphDBWriter::submit(Graph *gp) {
 
     // create tsv node file for bulk import to Neo4j
     std::fstream f_node;
-    f_node.open("../results/neo4j_node_import.tsv", std::ios::out);
+    f_node.open("results/neo4j_node_import.tsv", std::ios::out);
     if (!f_node) {
         cout << "Could not create neo4j_node_import.tsv" << endl;
     } else {
@@ -66,7 +66,7 @@ void GraphDBWriter::submit(Graph *gp) {
 
     // create tsv relationship header for bulk import to Neo4j
     std::fstream f_relations_header;
-    f_relations_header.open("../results/neo4j_relations_header_import.tsv", std::ios::out);
+    f_relations_header.open("results/neo4j_relations_header_import.tsv", std::ios::out);
     if (!f_relations_header) {
         cout << "Could not create neo4j_relations_header_import.tsv" << endl;
     } else {
@@ -76,7 +76,7 @@ void GraphDBWriter::submit(Graph *gp) {
 
     // create tsv relationship file for bulk import to Neo4j
     std::fstream f_relations;
-    f_relations.open("../results/neo4j_relations_import.tsv", std::ios::out);
+    f_relations.open("results/neo4j_relations_import.tsv", std::ios::out);
     if (!f_relations) {
         cout << "Could not create neo4j_relations_import.tsv" << endl;
     } else {

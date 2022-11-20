@@ -25,11 +25,16 @@ GraphBuilder::GraphBuilder(Graph *gp, vector<Rule> rules, vector<string> passwor
  * of rules to apply.
  */
 void GraphBuilder::build(size_t rule_try_cnt, PasswordNode node, size_t itr) {
-    cout << "trying node.password: " << node.password.size() << endl;
+    //cout << "trying node.password: " << node.password.size() << endl;
     for (size_t i = 0; i < rule_try_cnt; i++) {
         Rule &r = rnd_weighted_select();
+        reset_rule_weights_counter--;
+        if(reset_rule_weights_counter <= 0) {
+            reset_rule_weights_counter = RESET_RULE_WEIGHTS_COUNTER_INIT;
+            reset_rule_weights();
+        }
         string rule_raw = r.get_rule_raw();
-        cout << "2 trying rule_raw: " << rule_raw << endl;
+        //cout << "2 trying rule_raw: " << rule_raw << endl;
         string new_pw = r.apply_rule(node.password);
         this->steps++;
         if (this->target_pw_set.contains(new_pw)) {
@@ -59,11 +64,16 @@ void GraphBuilder::build(void) {
     for (auto pw : this->target_pws) {
         size_t rule_try_count = this->rules.size();
         // on first pass for each pw try all rules
-        cout << "Trying pw: " << pw << endl;
+        //cout << "Trying pw: " << pw << endl;
         for (Rule &r : this->rules) {
             string rule_raw = r.get_rule_raw();
-            cout << "Trying rule: " << rule_raw << endl;
+            //cout << "Trying rule: " << rule_raw << endl;
             string new_pw = r.apply_rule(pw);
+            reset_rule_weights_counter--;
+            if(reset_rule_weights_counter <= 0) {
+                reset_rule_weights_counter = RESET_RULE_WEIGHTS_COUNTER_INIT;
+                reset_rule_weights();
+            }
             this->steps++;
             //PasswordNode new_pw_node(new_pw, false);
             if (this->target_pw_set.contains(new_pw)) {
@@ -73,7 +83,7 @@ void GraphBuilder::build(void) {
                 this->rule_weight_sum += PW_HIT_WEIGHT_INCREASE;
                 this->gp->new_edge(PasswordNode(pw, true, 0), rule_raw, PasswordNode(new_pw, true, 1));
                 // don't go further down this path, since new_pw is a target node it will already get rules applied to it
-                cout << "made it here" << endl;
+                //cout << "made it here" << endl;
             } else {
                 unsigned int current_weight = r.get_weight();
                 if (((int) current_weight + RULE_SCORE_DECAY_VALUE) >= 1) {
@@ -89,6 +99,7 @@ void GraphBuilder::build(void) {
 }
 
 void GraphBuilder::reset_rule_weights(void) {
+    cout << "Resetting rule weights" << endl;
     for (auto &r : this->rules) {
         r.reset_weight();
     }
@@ -101,12 +112,14 @@ Rule& GraphBuilder::rnd_weighted_select(void) {
     // TODO: investigate how this seeding works
     std::mt19937 generator(device());
     std::uniform_int_distribution<unsigned int> dist(0, this->rule_weight_sum-1);
-    auto rnd = dist(generator);
-    for (auto &rule : this->rules) {
-        if (rnd < rule.get_weight()) {
-            return rule;
+    while(true) {
+        auto rnd = dist(generator);
+        for (auto &rule: this->rules) {
+            if (rnd < rule.get_weight()) {
+                return rule;
+            }
+            rnd -= rule.get_weight();
         }
-        rnd -= rule.get_weight();
     }
 }
 

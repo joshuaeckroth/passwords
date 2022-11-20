@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="VcsDirectoryMappings">
+    <mapping directory="$PROJECT_DIR$" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/libneo4j-client" vcs="" />
+    <mapping directory="$PROJECT_DIR$/libneo4j-client-v4" vcs="" />
+    <mapping directory="$PROJECT_DIR$/neo4j-browser" vcs="" />
+    <mapping directory="$PROJECT_DIR$/tmp/libneo4j-client" vcs="" />
+    <mapping directory="$PROJECT_DIR$/tmp/libneo4j-client-v4" vcs="" />
+    <mapping directory="$PROJECT_DIR$/tmp/neo4j-browser" vcs="" />
+  </component>
+</project>

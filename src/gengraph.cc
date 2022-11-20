@@ -29,8 +29,7 @@ int main(int argc, const char** argv) {
     auto rules = RuleLoader::load_rules(argv[2]);
     auto passwords = PasswordLoader::load_passwords(argv[1]);
     // print_seq(passwords);
-    Graph pw_graph;
-    Graph *gp = &pw_graph; 
+    Graph *gp = new Graph;
     GraphBuilder gb(gp, rules, passwords);
     gb.build();
     cout << *gp << endl;

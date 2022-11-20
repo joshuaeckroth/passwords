@@ -9,6 +9,8 @@
 #include "password_node.h"
 #include "rule.h"
 
+#define RESET_RULE_WEIGHTS_COUNTER_INIT 100000
+
 class GraphBuilder {
     private:
         Graph *gp;
@@ -18,6 +20,7 @@ class GraphBuilder {
         size_t rule_weight_sum;
         size_t steps = 0;
         size_t hits = 0;
+        int reset_rule_weights_counter = RESET_RULE_WEIGHTS_COUNTER_INIT;
         Rule& rnd_weighted_select(void);
         void build(size_t, PasswordNode, size_t);
         void reset_rule_weights(void);
