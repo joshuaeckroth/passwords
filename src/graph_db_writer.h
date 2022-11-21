@@ -16,8 +16,8 @@ class GraphDBWriter {
     private:
         neo4j_connection_t *conn = nullptr;
     public:
-        GraphDBWriter(void);
-        bool connect(void);
+        GraphDBWriter();
+        bool connect();
         void submit(Graph*);
 };
 

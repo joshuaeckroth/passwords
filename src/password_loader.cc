@@ -10,7 +10,7 @@ using std::cout, std::cerr, std::endl, std::string, std::vector, std::strerror, 
 
 vector<string> PasswordLoader::load_passwords(const char *path) {
     FILE *fp_passwords;
-    if ((fp_passwords = fopen(path, "r")) == NULL) {
+    if ((fp_passwords = fopen(path, "r")) == nullptr) {
         cerr << "Couldn't open passwords file: " << strerror(errno) << endl;
         throw std::runtime_error(strerror(errno));
     }
@@ -19,7 +19,7 @@ vector<string> PasswordLoader::load_passwords(const char *path) {
     vector<string> pw_vec;
     while (getline(&pw, &line_restrict, fp_passwords) != -1) {
         pw[strlen(pw)-1] = 0; // cut off delim
-        pw_vec.push_back(string(pw));
+        pw_vec.emplace_back(pw);
         pw = nullptr;
     }
     free(pw);

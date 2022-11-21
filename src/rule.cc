@@ -1,5 +1,7 @@
 #include <string>
 #include <iostream>
+#include <utility>
+#include <regex>
 #include "rule.h"
 
 extern "C" {
@@ -8,21 +10,29 @@ extern "C" {
 #include <rp_cpu.h>
 }
 
-using std::string, std::endl, std::cout;
+using std::string, std::endl, std::cout, std::regex, std::regex_replace;
 
-Rule::Rule(string s) : raw(s) {}
+Rule::Rule(string s) : raw(std::move(s)) {
+    clean_rule = regex_replace(regex_replace(raw, regex("\""), "QUOTE"), regex("\t"), "\\t");
+}
 
-Rule::Rule(const char* s) : raw(string(s)) {}
+Rule::Rule(const char* s) : raw(string(s)) {
+    clean_rule = regex_replace(regex_replace(raw, regex("\""), "QUOTE"), regex("\t"), "\\t");
+}
 
-string Rule::get_rule_raw() const {
+const string& Rule::get_rule_raw() const {
     return this->raw;
+}
+
+const string& Rule::get_rule_clean() const {
+    return this->clean_rule;
 }
 
 float Rule::get_weight() const {
     return this->weight;
 }
 
-string Rule::apply_rule(string password) const {
+string Rule::apply_rule(const string& password) const {
     char *pw_cstr = (char*) calloc(password.size()+1, sizeof(char)); // +1 to make space for \0
     strcpy(pw_cstr, password.c_str());
     char new_password[RP_PASSWORD_SIZE];
@@ -39,7 +49,7 @@ void Rule::decay_weight() {
     this->weight *= 0.99999;
 }
 
-void Rule::reset_weight(void) {
+void Rule::reset_weight() {
     this->weight = 1.0;
 }
 

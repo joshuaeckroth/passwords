@@ -10,33 +10,29 @@
 
 using std::string, std::pair, std::set, std::endl;
 
-Graph::Graph() {}
+Graph::Graph() = default;
 
-std::unordered_map<PasswordNode, set<pair<string, PasswordNode>>, PasswordNodeHash, PasswordNodeEqual> Graph::get_adj_list(void) const {
+std::unordered_map<PasswordNode, set<pair<string, PasswordNode>>, PasswordNodeHash, PasswordNodeEqual> Graph::get_adj_list() const {
     return this->adj_list;
 }
 
-bool Graph::node_exists(PasswordNode node) const {
-    return this->adj_list.contains(node);
-}
-
-int Graph::node_count() const {
+unsigned int Graph::node_count() const {
     return this->adj_list.size();
 }
 
-void Graph::new_node(PasswordNode node) {
+void Graph::new_node(const PasswordNode& node) {
     set<pair<string, PasswordNode>> empty_set;
     this->adj_list.insert({node, empty_set});
 }
 
-void Graph::new_edge(PasswordNode node_1, string rule_edge, PasswordNode node_2) {
+void Graph::new_edge(const PasswordNode& node_1, const string& rule_edge, const PasswordNode& node_2) {
     if (!this->adj_list.contains(node_1) || !this->adj_list.contains(node_2)) {
         throw std::logic_error("Node(s) to create edge between DNE!");
     }
     this->adj_list[node_1].insert(pair<string, PasswordNode>(rule_edge, node_2));
 }
 
-void Graph::new_edge_and_child(PasswordNode parent_node, string rule_edge, PasswordNode child_node) {
+void Graph::new_edge_and_child(const PasswordNode& parent_node, const string& rule_edge, const PasswordNode& child_node) {
     bool parent_exists = this->adj_list.contains(parent_node);
     bool child_exists = this->adj_list.contains(child_node);
     pair<string, PasswordNode> edge_node_pair(rule_edge, child_node);
@@ -50,15 +46,11 @@ void Graph::new_edge_and_child(PasswordNode parent_node, string rule_edge, Passw
     }
 }
 
-void Graph::merge_with(const Graph &g) {
-    return;
-}
-
 std::ostream& operator<<(std::ostream &os, const Graph &graph) {
     os << "=== GRAPH START ===\n";
-    for (auto kv : graph.get_adj_list()) {
+    for (const auto& kv : graph.get_adj_list()) {
         os << "NODE: " << kv.first << "\n";
-        for (auto edge_node : kv.second) {
+        for (const auto& edge_node : kv.second) {
            os << "\t=== " << edge_node.first << " ===> " << edge_node.second.password << "\n";
         }
     }

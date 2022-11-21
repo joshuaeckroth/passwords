@@ -1,4 +1,4 @@
-CXXFLAGS += -std=c++20 -g
+CXXFLAGS += -std=c++20 -O2 #-g
 CFLAGS_NATIVE_PW := $(CFLAGS)
 CFLAGS_NATIVE_PW += -DWITH_HWMON
 

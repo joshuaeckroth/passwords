@@ -1,22 +1,17 @@
-#include <unordered_set>
+#include <utility>
 #include <vector>
 #include <iostream>
 #include <string>
 #include <memory>
-#include <random>
 #include "graph_builder.h"
 #include "graph.h"
 #include "password_node.h"
 #include "rule.h"
 #include "graph_db_writer.h"
 
-
 using std::string, std::vector, std::set, std::unique_ptr, std::cout, std::endl;
 
-#define PW_HIT_WEIGHT_INCREASE 1
-#define RULE_SCORE_DECAY_VALUE -1
-
-GraphBuilder::GraphBuilder(Graph *gp, vector<Rule> rules, vector<string> passwords) : gp(gp), rules(rules), target_pws(passwords) {}
+GraphBuilder::GraphBuilder(Graph *gp, vector<Rule> rules, vector<string> passwords) : gp(gp), rules(std::move(rules)), target_pws(std::move(passwords)) {}
 
 /*
  * After all of m rules have been applied to n initial target passwords, choose
@@ -24,7 +19,7 @@ GraphBuilder::GraphBuilder(Graph *gp, vector<Rule> rules, vector<string> passwor
  * that didn't hit a target password.  Repeat on generated children until out
  * of rules to apply.
  */
-void GraphBuilder::build(size_t rule_try_cnt, PasswordNode node, size_t itr) {
+void GraphBuilder::build(size_t rule_try_cnt, const PasswordNode& node, size_t itr) {
     //cout << "trying node.password: " << node.password.size() << endl;
     for (size_t i = 0; i < rule_try_cnt; i++) {
         Rule &r = rnd_weighted_select();
@@ -43,24 +38,25 @@ void GraphBuilder::build(size_t rule_try_cnt, PasswordNode node, size_t itr) {
         }
         this->steps++;
         if (this->target_pw_set.contains(new_pw)) {
-            cout << "2 Applying rule " << rule_raw << " to " << node.password << " hit target " << new_pw << endl;
+            cout << "2 Applying rule " << rule_raw << " to " << node.password << " hit target " << new_pw << " on iteration " << itr << endl;
             this->hits++;
-            this->gp->new_edge(node, rule_raw, PasswordNode(new_pw, true, 0)); // 0 for iteration because target
+            this->gp->new_edge(node, r.get_rule_clean(), PasswordNode(new_pw, true, 0)); // 0 for iteration because target
         } else {
             r.decay_weight();
             auto new_miss_node = PasswordNode(new_pw, false, itr);
-            this->gp->new_edge_and_child(node, rule_raw, PasswordNode(new_pw, false, itr));
+            this->gp->new_edge_and_child(node, r.get_rule_clean(), PasswordNode(new_pw, false, itr));
             this->build(rule_try_cnt / 3, new_miss_node, itr + 1);
         }
     }
 }
 
 void GraphBuilder::build(GraphDBWriter *writer) {
-    for (auto pw : this->target_pws) {
+    for (const auto& pw : this->target_pws) {
         this->gp->new_node(PasswordNode(pw, true, 0));
         this->target_pw_set.insert(pw);
     }
-    for (auto pw : this->target_pws) {
+    int pw_count = 0;
+    for (const auto& pw : this->target_pws) {
         size_t rule_try_count = this->rules.size();
         // on first pass for each pw try all rules
         //cout << "Trying pw: " << pw << endl;
@@ -83,21 +79,24 @@ void GraphBuilder::build(GraphDBWriter *writer) {
             if (this->target_pw_set.contains(new_pw)) {
                 cout << "1 Applying rule " << rule_raw << " to " << pw << " hit target " << new_pw << endl;
                 this->hits++;
-                this->gp->new_edge(PasswordNode(pw, true, 0), rule_raw, PasswordNode(new_pw, true, 1));
+                this->gp->new_edge(PasswordNode(pw, true, 0), r.get_rule_clean(), PasswordNode(new_pw, true, 1));
                 // don't go further down this path, since new_pw is a target node it will already get rules applied to it
                 //cout << "made it here" << endl;
             } else {
                 r.decay_weight();
                 auto new_miss_node = PasswordNode(new_pw, false, 1);
-                this->gp->new_edge_and_child(PasswordNode(pw, true, 0), rule_raw, new_miss_node);
+                this->gp->new_edge_and_child(PasswordNode(pw, true, 0), r.get_rule_clean(), new_miss_node);
                 this->build(rule_try_count / 3, new_miss_node, 2);
             }
         }
-        writer->submit(this->gp);
+        pw_count++;
+        if(pw_count % 5 == 0) {
+            writer->submit(this->gp);
+        }
     }
 }
 
-void GraphBuilder::reset_rule_weights(void) {
+void GraphBuilder::reset_rule_weights() {
     cout << "Resetting rule weights" << endl;
     for (auto &r : this->rules) {
         r.reset_weight();
@@ -105,7 +104,7 @@ void GraphBuilder::reset_rule_weights(void) {
     cout << "Node count: " << this->gp->node_count() << endl;
 }
 
-Rule& GraphBuilder::rnd_weighted_select(void) {
+Rule& GraphBuilder::rnd_weighted_select() {
     while(true) {
         for(int i = 0; i < 10; i++) {
             vector<Rule *> good_rules;
@@ -116,7 +115,7 @@ Rule& GraphBuilder::rnd_weighted_select(void) {
                 }
             }
             if (!good_rules.empty()) {
-                int pos = random() % good_rules.size();
+                unsigned int pos = random() % good_rules.size();
                 return *(good_rules.at(pos));
             }
         }

@@ -14,3 +14,4 @@ external/*
 *~
 *.swp
 *.swo
+/gengraph

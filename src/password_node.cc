@@ -1,10 +1,15 @@
 #include <string>
 #include <iostream>
+#include <regex>
 #include "password_node.h"
+#include "util.h"
 
-using std::string;
+using std::string, std::regex, std::regex_replace;
 
-PasswordNode::PasswordNode(string s, bool is_target, size_t iteration) : password(s), is_target(is_target), iteration(iteration) {}
+PasswordNode::PasswordNode(const string& s, bool is_target, size_t iteration) : password(s), is_target(is_target), iteration(iteration) {
+    password_md5 = md5(s.c_str());
+    clean_password = regex_replace(regex_replace(s, regex("\""), "QUOTE"), regex("\t"), "\\t");
+}
 
 bool PasswordNode::operator<(const PasswordNode &node) const {
     return this->password < node.password;

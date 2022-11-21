@@ -5,7 +5,6 @@
 #include <errno.h>
 #include "graph_db_writer.h"
 #include "rule.h"
-#include "util.h"
 #include "password_node.h"
 #include "graph.h"
 
@@ -17,7 +16,7 @@ extern "C" {
 
 using std::cout, std::endl, std::string;
 
-GraphDBWriter::GraphDBWriter() {}
+GraphDBWriter::GraphDBWriter() = default;
 
 bool GraphDBWriter::connect() {
     neo4j_client_init();
@@ -56,12 +55,11 @@ void GraphDBWriter::submit(Graph *gp) {
     } else {
         cout << "Created neo4j_node_import.tsv" << endl;
     }
-    for (auto kv : gp->get_adj_list()) {
+    for (const auto& kv : gp->get_adj_list()) {
         auto pw_node = kv.first;
-        char *md5_pw = md5(pw_node.password.c_str());
-        string row = string(md5_pw) + "\t\"" + pw_node.password + "\"\t" + std::to_string(pw_node.iteration) + "\t" + std::to_string((pw_node.is_target) ? 1 : 0) + "\n";
+        const char *md5_pw = pw_node.password_md5;
+        string row = string(md5_pw) + "\t\"" + pw_node.clean_password + "\"\t" + std::to_string(pw_node.iteration) + "\t" + std::to_string((pw_node.is_target) ? 1 : 0) + "\n";
         f_node << row;
-        free(md5_pw);
     }
 
     // create tsv relationship header for bulk import to Neo4j
@@ -82,18 +80,16 @@ void GraphDBWriter::submit(Graph *gp) {
     } else {
         cout << "Created neo4j_relations_import.tsv" << endl;
     }
-    for (auto kv : gp->get_adj_list()) {
+    for (const auto& kv : gp->get_adj_list()) {
         auto parent_node = kv.first;
-        char *parent_md5 = md5(parent_node.password.c_str());
-        for (auto edge_node : kv.second) {
+        const char *parent_md5 = parent_node.password_md5;
+        for (const auto& edge_node : kv.second) {
             string rule = edge_node.first;
             auto child_node = edge_node.second;
-            char *child_md5 = md5(child_node.password.c_str());
+            const char *child_md5 = child_node.password_md5;
             string row = string(parent_md5) + "\t\"" + rule + "\"\t" + string(child_md5) + "\tGENERATED\n";
             f_relations << row;
-            free(child_md5);
         }
-        free(parent_md5);
     }
 
 //    f_node_header << "test,test\n";
