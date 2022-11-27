@@ -8,7 +8,7 @@ class PasswordNode {
     public:
         const std::string password;
         std::string clean_password;
-        const char* password_md5;
+        std::string password_md5;
         const bool is_target;
         PasswordNode(const std::string&, bool);
         bool operator<(const PasswordNode &node) const;

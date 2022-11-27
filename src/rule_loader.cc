@@ -47,6 +47,8 @@ std::vector<Rule> RuleLoader::load_rules(const char *path) {
     rule_vec.reserve(rule_count);
     for (int idx = 0; idx < rule_count; idx++) {
         rule_vec.emplace_back(rules[idx]);
+        free(rules[idx]);
     }
+    free(rules);
     return rule_vec;
 }

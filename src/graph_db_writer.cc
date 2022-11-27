@@ -57,8 +57,7 @@ void GraphDBWriter::submit(Graph *gp) {
     }
     for (const auto& kv : gp->get_adj_list()) {
         auto pw_node = kv.first;
-        const char *md5_pw = pw_node.password_md5;
-        string row = string(md5_pw) + "\t\"" + pw_node.clean_password + "\"\t" + std::to_string(pw_node.is_target) + "\n";
+        string row = pw_node.password_md5 + "\t\"" + pw_node.clean_password + "\"\t" + std::to_string(pw_node.is_target) + "\n";
         f_node << row;
     }
 
@@ -82,12 +81,12 @@ void GraphDBWriter::submit(Graph *gp) {
     }
     for (const auto& kv : gp->get_adj_list()) {
         auto parent_node = kv.first;
-        const char *parent_md5 = parent_node.password_md5;
+        auto parent_md5 = parent_node.password_md5;
         for (const auto& edge_node : kv.second) {
             string rule = edge_node.first;
             auto child_node = edge_node.second;
-            const char *child_md5 = child_node.password_md5;
-            string row = string(parent_md5) + "\t\"" + rule + "\"\t" + string(child_md5) + "\tGENERATED\n";
+            auto child_md5 = child_node.password_md5;
+            string row = parent_md5 + "\t\"" + rule + "\"\t" + child_md5 + "\tGENERATED\n";
             f_relations << row;
         }
     }

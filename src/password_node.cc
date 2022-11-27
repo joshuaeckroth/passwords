@@ -1,4 +1,5 @@
 #include <string>
+#include <cstring>
 #include <iostream>
 #include <regex>
 #include "password_node.h"

@@ -1,6 +1,7 @@
 #ifndef UTIL_H
 #define UTIL_H
 
+#include <string>
 #include <iostream>
 #include <climits>
 
@@ -12,8 +13,10 @@
 #define ANSI_BLUE_INFO "\033[1;36mINFO\033[0m"
 #define ANSI_GREEN_SUCCESS "\033[1;32mSUCCESS\033[0m"
 
+#define PROFILING 1
+
 void md5_bytes_to_hex(const unsigned char*, char*);
-char* md5(const char*);
+std::string md5(const char*);
 
 template<typename Q>
 void print_queue(Q q) {

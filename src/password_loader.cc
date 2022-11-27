@@ -20,6 +20,7 @@ vector<string> PasswordLoader::load_passwords(const char *path) {
     while (getline(&pw, &line_restrict, fp_passwords) != -1) {
         pw[strlen(pw)-1] = 0; // cut off delim
         pw_vec.emplace_back(pw);
+        free(pw);
         pw = nullptr;
     }
     free(pw);

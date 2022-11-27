@@ -15,7 +15,7 @@ GraphBuilder::GraphBuilder(Graph *gp, vector<Rule> rules, vector<string> passwor
 
 /*
  * After all of m rules have been applied to n initial target passwords, choose
- * m / 2 rules using weighted random selection to apply to each transformation
+ * m / 3 rules using weighted random selection to apply to each transformation
  * that didn't hit a target password.  Repeat on generated children until out
  * of rules to apply.
  */

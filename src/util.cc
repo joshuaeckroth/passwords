@@ -1,5 +1,5 @@
+#include <string>
 #include <stdio.h>
-#include <string.h>
 #include "util.h"
 
 extern "C" {
@@ -13,11 +13,13 @@ void md5_bytes_to_hex(const unsigned char *md5, char *result) {
     }
 }
 
-char* md5(const char *input) {
+std::string md5(const char *input) {
     unsigned char md5result[16];
     MD5((const unsigned char*)input, strlen(input), md5result);
     char *result = (char*)malloc(33);
     md5_bytes_to_hex(md5result, result);
-    return result;
+    std::string res_str(result);
+    free(result);
+    return res_str;
 }
 

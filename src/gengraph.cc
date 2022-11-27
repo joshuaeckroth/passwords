@@ -22,12 +22,15 @@ extern "C" {
 using std::vector, std::string, std::cout, std::endl, std::pair;
 
 int main(int argc, const char** argv) {
+    cout << "gengraph starting..." << endl;
     if(argc != 3) {
         fprintf(stderr, "Usage: %s <password list> <rule list>\n", argv[0]);
         return -1;
     }
     auto rules = RuleLoader::load_rules(argv[2]);
+    cout << "Loaded rules successfully..." << endl;
     auto passwords = PasswordLoader::load_passwords(argv[1]);
+    cout << "Loaded passwords successfully..." << endl;
     // print_seq(passwords);
     auto *gp = new Graph;
     GraphBuilder gb(gp, rules, passwords);
@@ -37,6 +40,9 @@ int main(int argc, const char** argv) {
     bool did_connect = writer.connect();
     //writer.submit(gp);
     cout << "Connected to Neo4j? " << ((did_connect) ? "true" : "false") << endl;
+#if PROFILING == 1
+    //system("leaks gengraph");
+#endif
     return 0;
 }
 

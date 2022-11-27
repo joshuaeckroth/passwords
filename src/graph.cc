@@ -8,7 +8,7 @@
 #include "password_node_hash.h"
 #include "graph.h"
 
-using std::string, std::pair, std::set, std::endl;
+using std::string, std::pair, std::set, std::endl, std::cout;
 
 Graph::Graph() = default;
 
