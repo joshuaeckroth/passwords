@@ -16,6 +16,9 @@ CFLAGS_NATIVE_PW += -I external/hashcat/include -I external/hashcat/deps/LZMA-SD
 NEO4J_FLAGS = $(shell PKG_CONFIG_PATH=/opt/homebrew/opt/openssl@1.1/lib/pkgconfig:external/libneo4j-client-v4-install/lib/pkgconfig/ pkg-config --cflags --libs neo4j-client)
 HC_ARCHIVE = external/hashcat/obj/combined.NATIVE.a
 
+BOOST_ROOT := external/boost_1_80_0
+BOOST_FLAGS := -I $(BOOST_ROOT)
+
 GENGRAPH_SRCS = src/rule.cc src/util.cc src/rule_loader.cc src/password_loader.cc src/password_node.cc src/graph.cc src/password_node_hash.cc src/graph_builder.cc src/graph_db_writer.cc src/gengraph.cc
 GENGRAPH_OBJS = $(subst .cc,.o,$(GENGRAPH_SRCS))
 
@@ -33,19 +36,19 @@ src/rule.o: src/rule.cc src/rule.h $(HC_ARCHIVE)
 	$(CXX) $(CXXFLAGS) $(CFLAGS_NATIVE_PW) $(LFLAGS_NATIVE) -c src/rule.cc -o src/rule.o $(HC_ARCHIVE)
 
 src/password_node.o: src/password_node.cc src/password_node.h
-	$(CXX) $(CXXFLAGS) $(CFLAGS_NATIVE_PW) $(LFLAGS_NATIVE) -c src/password_node.cc -o src/password_node.o
+	$(CXX) $(CXXFLAGS) $(CFLAGS_NATIVE_PW) $(BOOST_FLAGS) $(LFLAGS_NATIVE) -c src/password_node.cc -o src/password_node.o
 
 src/password_node_hash.o: src/password_node_hash.cc src/password_node_hash.h src/password_node.h
-	$(CXX) $(CXXFLAGS) $(CFLAGS_NATIVE_PW) $(LFLAGS_NATIVE) -c src/password_node_hash.cc -o src/password_node_hash.o
+	$(CXX) $(CXXFLAGS) $(CFLAGS_NATIVE_PW) $(BOOST_FLAGS) $(LFLAGS_NATIVE) -c src/password_node_hash.cc -o src/password_node_hash.o
 
 src/graph.o: src/graph.cc src/graph.h src/password_node.h src/password_node_hash.h
-	$(CXX) $(CXXFLAGS) $(CFLAGS_NATIVE_PW) $(LFLAGS_NATIVE) -c src/graph.cc -o src/graph.o
+	$(CXX) $(CXXFLAGS) $(CFLAGS_NATIVE_PW) $(BOOST_FLAGS) $(LFLAGS_NATIVE) -c src/graph.cc -o src/graph.o
 
 src/graph_builder.o: src/graph_builder.cc src/graph_builder.h src/graph.h src/password_node.h src/rule.h
-	$(CXX) $(CXXFLAGS) $(CFLAGS_NATIVE_PW) $(LFLAGS_NATIVE) $(NEO4J_FLAGS) -c src/graph_builder.cc -o src/graph_builder.o
+	$(CXX) $(CXXFLAGS) $(CFLAGS_NATIVE_PW) $(BOOST_FLAGS) $(LFLAGS_NATIVE) $(NEO4J_FLAGS) -c src/graph_builder.cc -o src/graph_builder.o
 
 src/graph_db_writer.o: src/graph_db_writer.cc src/graph_db_writer.h src/rule.h src/util.h src/password_node.h src/graph.h
-	$(CXX) $(CXXFLAGS) $(CFLAGS_NATIVE_PW) $(LFLAGS_NATIVE) $(NEO4J_FLAGS) -c src/graph_db_writer.cc -o src/graph_db_writer.o
+	$(CXX) $(CXXFLAGS) $(CFLAGS_NATIVE_PW) $(BOOST_FLAGS) $(LFLAGS_NATIVE) $(NEO4J_FLAGS) -c src/graph_db_writer.cc -o src/graph_db_writer.o
 
 src/rule_loader.o: src/rule_loader.cc src/rule_loader.h src/rule.h
 	$(CXX) $(CXXFLAGS) $(CFLAGS_NATIVE_PW) -c src/rule_loader.cc -o src/rule_loader.o
@@ -57,7 +60,7 @@ src/util.o: src/util.cc src/util.h
 	$(CXX) $(CXXFLAGS) $(CFLAGS_NATIVE_PW) $(LFLAGS_NATIVE) $(NEO4J_FLAGS) -c src/util.cc -o src/util.o
 
 src/gengraph.o: src/gengraph.cc src/rule.h src/rule_loader.h src/password_loader.h src/util.h src/password_node.h src/graph.h src/graph_builder.h src/graph_db_writer.h
-	$(CXX) $(CXXFLAGS) $(CFLAGS_NATIVE_PW) $(LFLAGS_NATIVE) $(NEO4J_FLAGS) -c src/gengraph.cc -o src/gengraph.o
+	$(CXX) $(CXXFLAGS) $(CFLAGS_NATIVE_PW) $(LFLAGS_NATIVE) $(BOOST_FLAGS) $(NEO4J_FLAGS) -c src/gengraph.cc -o src/gengraph.o
 
 gengraph: $(GENGRAPH_OBJS) $(HC_ARCHIVE)
-	$(CXX) $(CXXFLAGS) $(CFLAGS_NATIVE_PW) $(LFLAGS_NATIVE) $(NEO4J_FLAGS) -o gengraph $(GENGRAPH_OBJS) $(HC_ARCHIVE)
+	$(CXX) $(CXXFLAGS) $(CFLAGS_NATIVE_PW) $(LFLAGS_NATIVE) $(BOOST_FLAGS) $(NEO4J_FLAGS) -o gengraph $(GENGRAPH_OBJS) $(HC_ARCHIVE)

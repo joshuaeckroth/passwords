@@ -10,3 +10,5 @@ make install
 cd ..
 git clone git@github.com:hashcat/hashcat.git
 cd hashcat && make obj/combined.NATIVE.a
+wget -c "https://boostorg.jfrog.io/artifactory/main/release/1.80.0/source/boost_1_80_0.tar.bz2"
+tar --bzip2 -xf boost_1_80_0.tar.bz2

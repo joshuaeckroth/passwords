@@ -57,7 +57,7 @@ void GraphDBWriter::submit(Graph *gp) {
     }
     for (const auto& kv : gp->get_adj_list()) {
         auto pw_node = kv.first;
-        string row = pw_node.password_md5 + "\t\"" + pw_node.clean_password + "\"\t" + std::to_string(pw_node.is_target) + "\n";
+        string row = pw_node.password_md5 + "\t\"" + pw_node.clean_password.get() + "\"\t" + std::to_string(pw_node.is_target) + "\n";
         f_node << row;
     }
 

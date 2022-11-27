@@ -1,13 +1,16 @@
 #ifndef PASSWORD_NODE_H
 #define PASSWORD_NODE_H
 
+#include <boost/flyweight.hpp>
 #include <string>
 #include <iostream>
 
 class PasswordNode {
     public:
-        const std::string password;
-        std::string clean_password;
+        const boost::flyweight<std::string> password;
+        //const std::string password;
+        boost::flyweight<std::string> clean_password;
+        //std::string clean_password;
         std::string password_md5;
         const bool is_target;
         PasswordNode(const std::string&, bool);
