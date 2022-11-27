@@ -22,7 +22,7 @@ unsigned int Graph::node_count() const {
 
 void Graph::new_node(const PasswordNode& node) {
     set<pair<string, PasswordNode>> empty_set;
-    this->adj_list.insert({node, empty_set});
+    this->adj_list.insert(std::make_pair(std::ref(node), empty_set));
 }
 
 void Graph::new_edge(const PasswordNode& node_1, const string& rule_edge, const PasswordNode& node_2) {
