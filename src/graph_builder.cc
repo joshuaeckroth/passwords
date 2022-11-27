@@ -19,7 +19,7 @@ GraphBuilder::GraphBuilder(Graph *gp, vector<Rule> rules, vector<string> passwor
  * that didn't hit a target password.  Repeat on generated children until out
  * of rules to apply.
  */
-void GraphBuilder::build(size_t rule_try_cnt, const PasswordNode& node, size_t itr) {
+void GraphBuilder::build(size_t rule_try_cnt, const PasswordNode& node) {
     //cout << "trying node.password: " << node.password.size() << endl;
     for (size_t i = 0; i < rule_try_cnt; i++) {
         Rule &r = rnd_weighted_select();
@@ -38,21 +38,21 @@ void GraphBuilder::build(size_t rule_try_cnt, const PasswordNode& node, size_t i
         }
         this->steps++;
         if (this->target_pw_set.contains(new_pw)) {
-            cout << "2 Applying rule " << rule_raw << " to " << node.password << " hit target " << new_pw << " on iteration " << itr << endl;
+            cout << "2 Applying rule " << rule_raw << " to " << node.password << " hit target " << new_pw << endl; 
             this->hits++;
-            this->gp->new_edge(node, r.get_rule_clean(), PasswordNode(new_pw, true, 0)); // 0 for iteration because target
+            this->gp->new_edge(node, r.get_rule_clean(), PasswordNode(new_pw, true));
         } else {
             r.decay_weight();
-            auto new_miss_node = PasswordNode(new_pw, false, itr);
-            this->gp->new_edge_and_child(node, r.get_rule_clean(), PasswordNode(new_pw, false, itr));
-            this->build(rule_try_cnt / 3, new_miss_node, itr + 1);
+            auto new_miss_node = PasswordNode(new_pw, false);
+            this->gp->new_edge_and_child(node, r.get_rule_clean(), PasswordNode(new_pw, false));
+            this->build(rule_try_cnt / 3, new_miss_node);
         }
     }
 }
 
 void GraphBuilder::build(GraphDBWriter *writer) {
     for (const auto& pw : this->target_pws) {
-        this->gp->new_node(PasswordNode(pw, true, 0));
+        this->gp->new_node(PasswordNode(pw, true));
         this->target_pw_set.insert(pw);
     }
     int pw_count = 0;
@@ -79,14 +79,14 @@ void GraphBuilder::build(GraphDBWriter *writer) {
             if (this->target_pw_set.contains(new_pw)) {
                 cout << "1 Applying rule " << rule_raw << " to " << pw << " hit target " << new_pw << endl;
                 this->hits++;
-                this->gp->new_edge(PasswordNode(pw, true, 0), r.get_rule_clean(), PasswordNode(new_pw, true, 1));
+                this->gp->new_edge(PasswordNode(pw, true), r.get_rule_clean(), PasswordNode(new_pw, true));
                 // don't go further down this path, since new_pw is a target node it will already get rules applied to it
                 //cout << "made it here" << endl;
             } else {
                 r.decay_weight();
-                auto new_miss_node = PasswordNode(new_pw, false, 1);
-                this->gp->new_edge_and_child(PasswordNode(pw, true, 0), r.get_rule_clean(), new_miss_node);
-                this->build(rule_try_count / 3, new_miss_node, 2);
+                auto new_miss_node = PasswordNode(new_pw, false);
+                this->gp->new_edge_and_child(PasswordNode(pw, true), r.get_rule_clean(), new_miss_node);
+                this->build(rule_try_count / 3, new_miss_node);
             }
         }
         pw_count++;

@@ -45,7 +45,7 @@ void GraphDBWriter::submit(Graph *gp) {
     } else {
         cout << "Created neo4j_node_header_import.tsv" << endl;
     }
-    f_node_header << "md5:ID\tpassword\titeration:int\tis_target:int";
+    f_node_header << "md5:ID\tpassword\tis_target:int";
 
     // create tsv node file for bulk import to Neo4j
     std::fstream f_node;
@@ -58,7 +58,7 @@ void GraphDBWriter::submit(Graph *gp) {
     for (const auto& kv : gp->get_adj_list()) {
         auto pw_node = kv.first;
         const char *md5_pw = pw_node.password_md5;
-        string row = string(md5_pw) + "\t\"" + pw_node.clean_password + "\"\t" + std::to_string(pw_node.iteration) + "\t" + std::to_string((pw_node.is_target) ? 1 : 0) + "\n";
+        string row = string(md5_pw) + "\t\"" + pw_node.clean_password + "\"\t" + std::to_string(pw_node.is_target) + "\n";
         f_node << row;
     }
 

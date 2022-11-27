@@ -6,7 +6,7 @@
 
 using std::string, std::regex, std::regex_replace;
 
-PasswordNode::PasswordNode(const string& s, bool is_target, size_t iteration) : password(s), is_target(is_target), iteration(iteration) {
+PasswordNode::PasswordNode(const string& s, bool is_target) : password(s), is_target(is_target) {
     password_md5 = md5(s.c_str());
     clean_password = regex_replace(regex_replace(s, regex("\""), "QUOTE"), regex("\t"), "\\t");
 }

@@ -10,8 +10,7 @@ class PasswordNode {
         std::string clean_password;
         const char* password_md5;
         const bool is_target;
-        size_t iteration;
-        PasswordNode(const std::string&, bool, size_t);
+        PasswordNode(const std::string&, bool);
         bool operator<(const PasswordNode &node) const;
         bool operator==(const PasswordNode &node) const;
         friend std::ostream& operator<<(std::ostream &os, const PasswordNode &node);
