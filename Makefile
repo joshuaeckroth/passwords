@@ -13,11 +13,19 @@ endif
 
 CFLAGS_NATIVE_PW += -I external/hashcat/include -I external/hashcat/deps/LZMA-SDK/C -I external/hashcat/deps/zlib -I external/hashcat/deps/zlib/contrib -I external/hashcat/deps/OpenCL-Headers -I external/hashcat/deps/xxHash -I external/hashcat/deps/unrar -I external/hashcat/OpenCL
 
+RADIX_ROOT := external/rax
+RADIX_FLAGS := -I $(RADIX_ROOT) 
+
+# OPENSSL_FLAGS = $(shell PKG_CONFIG_PATH=/opt/homebrew/opt/openssl@1.1/lib/pkgconfig/ pkg-config --cflags --libs)
+
 NEO4J_FLAGS = $(shell PKG_CONFIG_PATH=/opt/homebrew/opt/openssl@1.1/lib/pkgconfig:external/libneo4j-client-v4-install/lib/pkgconfig/ pkg-config --cflags --libs neo4j-client)
 HC_ARCHIVE = external/hashcat/obj/combined.NATIVE.a
 
 GENGRAPH_SRCS = src/rule.cc src/util.cc src/rule_loader.cc src/password_loader.cc src/password_node.cc src/graph.cc src/password_node_hash.cc src/graph_builder.cc src/graph_db_writer.cc src/gengraph.cc
 GENGRAPH_OBJS = $(subst .cc,.o,$(GENGRAPH_SRCS))
+
+GENTREE_SRCS = src/gentree.cc src/util.cc src/rule_loader.cc src/password_loader.cc src/rule.cc src/password_data.cc src/rule_data.cc src/tree_builder.cc
+GENTREE_OBJS = $(subst .cc,.o,$(GENTREE_SRCS)) src/rax.o
 
 all: gengraph
 
@@ -61,3 +69,21 @@ src/gengraph.o: src/gengraph.cc src/rule.h src/rule_loader.h src/password_loader
 
 gengraph: $(GENGRAPH_OBJS) $(HC_ARCHIVE)
 	$(CXX) $(CXXFLAGS) $(CFLAGS_NATIVE_PW) $(LFLAGS_NATIVE) $(NEO4J_FLAGS) -o gengraph $(GENGRAPH_OBJS) $(HC_ARCHIVE)
+
+src/rax.o: $(RADIX_ROOT)/rax.h
+	$(CC) -c $(RADIX_ROOT)/rax.c -o src/rax.o
+
+src/password_data.o: src/password_data.cc src/password_data.h
+	$(CXX) $(CXXFLAGS) -c src/password_data.cc -o src/password_data.o
+
+src/rule_data.o: src/rule_data.cc src/rule_data.h
+	$(CXX) $(CXXFLAGS) -c src/rule_data.cc -o src/rule_data.o
+
+src/tree_builder.o: src/tree_builder.cc $(RADIX_ROOT)/rax.h src/password_data.h src/rule_data.h $(HC_ARCHIVE)
+	$(CXX) $(CXXFLAGS) $(CFLAGS_NATIVE_PW) $(RADIX_FLAGS) $(LFLAGS_NATIVE) -c src/tree_builder.cc -o src/tree_builder.o $(HC_ARCHIVE)
+
+src/gentree.o: src/gentree.cc src/rule.h src/password_loader.h src/rule_loader.h src/util.h src/password_data.h src/tree_builder.h $(RADIX_ROOT)/rax.h
+	$(CXX) $(CXXFLAGS) $(CFLAGS_NATIVE_PW) $(LFLAGS_NATIVE) $(RADIX_FLAGS) $(NEO4J_FLAGS) -c src/gentree.cc -o src/gentree.o 
+
+gentree: $(GENTREE_OBJS) $(HC_ARCHIVE) 
+	$(CXX) $(CXXFLAGS) $(CFLAGS_NATIVE_PW) $(LFLAGS_NATIVE) $(RADIX_FLAGS) $(NEO4J_FLAGS) -o gentree $(GENTREE_OBJS) $(HC_ARCHIVE)

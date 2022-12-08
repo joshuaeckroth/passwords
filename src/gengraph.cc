@@ -27,7 +27,7 @@ int main(int argc, const char** argv) {
         fprintf(stderr, "Usage: %s <password list> <rule list>\n", argv[0]);
         return -1;
     }
-    auto rules = RuleLoader::load_rules(argv[2]);
+    auto rules = RuleLoader::load_rules<Rule>(argv[2]);
     cout << "Loaded rules successfully..." << endl;
     auto passwords = PasswordLoader::load_passwords(argv[1]);
     cout << "Loaded passwords successfully..." << endl;
