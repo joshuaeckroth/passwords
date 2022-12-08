@@ -76,46 +76,50 @@ void TreeBuilder::build(size_t max_node_cnt) {
     cout << "Made it past first cycle" << endl;
     // for (int idx = 0; idx < max_cycles; idx++) {
     size_t idx = 0;
-    while (this->pw_cnt <= max_node_cnt && this->available_passwords.size() != 0) {
+    while (idx < 2) {
+    //while (this->pw_cnt <= max_node_cnt && this->available_passwords.size() != 0) {
+        cout << "pw_cnt: " << pw_cnt << endl;
+        cout << "available_pw_size: " << this->available_passwords.size() << endl;
         for (auto &password_history : this->choose_passwords(pw_choose_n)) {
             auto password = password_history.first;
             auto history = password_history.second;
             for (auto &rule : rules) {
                 char *new_pw = this->apply_rule(rule, password);
-                PasswordData **old = nullptr;
+                PasswordData *old = nullptr;
                 PasswordData *pdp = new PasswordData(false, false);
                 // base rule, will always exist
                 RuleData *rdp = (RuleData*) raxFind(this->rule_tree, (unsigned char*) rule.c_str(), rule.size());
                 auto new_history = history + rule;
                 RuleData *rdp_comp = new RuleData(0, 1.0f, true);
-                RuleData **rdp_composite_existing = nullptr;
+                RuleData *rdp_composite_existing = nullptr;
                 // try to insert new composite rule
-                int check_rule_composite = raxTryInsert(this->rule_tree, (unsigned char*) new_history.c_str(), new_history.size(), (void*) rdp_comp, (void**) rdp_composite_existing);
-                int check_exists = raxTryInsert(this->pw_tree, (unsigned char*) new_pw, strlen(new_pw), (void*) pdp, (void**) old);
+                int check_rule_composite = raxTryInsert(this->rule_tree, (unsigned char*) new_history.c_str(), new_history.size(), (void*) rdp_comp, (void**) &rdp_composite_existing);
+                int check_exists = raxTryInsert(this->pw_tree, (unsigned char*) new_pw, strlen(new_pw), (void*) pdp, (void**) &old);
                 if (check_rule_composite == 0) { // composite rule already exists
-                    cout << "Comp rule already exists" << endl;
+                    //cout << "Comp rule already exists" << endl;
                     delete rdp_comp;
-                    rdp_comp = (RuleData*) *rdp_composite_existing;
+                    rdp_comp = rdp_composite_existing;
                     if (check_exists == 0) { // generated pw already exists
-                        cout << "Generated PW already exists" << endl;
+                      //  cout << "Generated PW already exists" << endl;
                         delete pdp;
-                        pdp = (PasswordData*) *old;
+                        pdp = old;
                         if (pdp->is_target) {
-                            cout << "Existing PW was target" << endl;
+                        //    cout << "Existing PW was target" << endl;
                             // Raise score of composite and base
-                            rdp_comp->hit_count++;
+                            rdp_comp->hit_count++; //
                             rdp->hit_count++;
                         } else {
-                            cout << "Existing PW was not target" << endl;
-                            this->available_passwords.insert({new_pw, rule});
+                          //  cout << "Existing PW was not target" << endl;
+                            
                             rdp->score *= RULE_SCORE_DECAY_FACTOR;
                             rdp_comp->score *= RULE_SCORE_DECAY_FACTOR;
                         }
                     } else {
+                        this->available_passwords.insert({new_pw, rule});
                         this->pw_cnt++;
                     }
                 } else {
-                    cout << "Comp rule DNE" << endl;
+//                    cout << "Comp rule DNE" << endl;
                     this->rule_cnt++;
                 }
                 free(new_pw);
@@ -146,14 +150,20 @@ vector<pair<string, string>> TreeBuilder::choose_passwords(size_t n) {
     cout << "Choosing passwords" << endl;
     size_t idx = 0;
     vector<pair<string, string>> res;
+    //vector<pair<string, string>> to_erase;
     for (auto &set_entry : this->available_passwords) {
         if (idx >= n) {
             break;
         }
         res.push_back(set_entry);
-        //this->available_passwords.erase(set_entry);
+        //to_erase.push_back(set_entry);
+    //    this->available_passwords.erase(set_entry);
         idx++;
     }
+    for (auto &erase : res) {
+        this->available_passwords.erase(erase);
+    }
+
     cout << "Done choosing passwords" << endl;
     return res;
 }

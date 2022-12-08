@@ -1,4 +1,4 @@
-CXXFLAGS += -std=c++20 -O2 #-g
+CXXFLAGS += -std=c++20 -O0 -g
 CFLAGS_NATIVE_PW := $(CFLAGS)
 CFLAGS_NATIVE_PW += -DWITH_HWMON
 
@@ -24,7 +24,7 @@ HC_ARCHIVE = external/hashcat/obj/combined.NATIVE.a
 GENGRAPH_SRCS = src/rule.cc src/util.cc src/rule_loader.cc src/password_loader.cc src/password_node.cc src/graph.cc src/password_node_hash.cc src/graph_builder.cc src/graph_db_writer.cc src/gengraph.cc
 GENGRAPH_OBJS = $(subst .cc,.o,$(GENGRAPH_SRCS))
 
-GENTREE_SRCS = src/gentree.cc src/util.cc src/rule_loader.cc src/password_loader.cc src/rule.cc src/password_data.cc src/rule_data.cc src/tree_builder.cc
+GENTREE_SRCS = src/gentree.cc src/util.cc src/rule_loader.cc src/password_loader.cc src/rule.cc src/password_data.cc src/rule_data.cc src/tree_builder.cc src/analyze_tree.cc
 GENTREE_OBJS = $(subst .cc,.o,$(GENTREE_SRCS)) src/rax.o
 
 all: gengraph
@@ -82,7 +82,10 @@ src/rule_data.o: src/rule_data.cc src/rule_data.h
 src/tree_builder.o: src/tree_builder.cc $(RADIX_ROOT)/rax.h src/password_data.h src/rule_data.h $(HC_ARCHIVE)
 	$(CXX) $(CXXFLAGS) $(CFLAGS_NATIVE_PW) $(RADIX_FLAGS) $(LFLAGS_NATIVE) -c src/tree_builder.cc -o src/tree_builder.o $(HC_ARCHIVE)
 
-src/gentree.o: src/gentree.cc src/rule.h src/password_loader.h src/rule_loader.h src/util.h src/password_data.h src/tree_builder.h $(RADIX_ROOT)/rax.h
+src/analyze_tree.o: src/analyze_tree.cc $(RADIX_ROOT)/rax.h src/analyze_tree.h src/rule_data.h
+	$(CXX) $(CXXFLAGS) $(CFLAGS_NATIVE_PW) $(RADIX_FLAGS) $(LFLAGS_NATIVE) -c src/analyze_tree.cc -o src/analyze_tree.o
+
+src/gentree.o: src/gentree.cc src/rule.h src/password_loader.h src/rule_loader.h src/util.h src/password_data.h src/tree_builder.h src/analyze_tree.h $(RADIX_ROOT)/rax.h
 	$(CXX) $(CXXFLAGS) $(CFLAGS_NATIVE_PW) $(LFLAGS_NATIVE) $(RADIX_FLAGS) $(NEO4J_FLAGS) -c src/gentree.cc -o src/gentree.o 
 
 gentree: $(GENTREE_OBJS) $(HC_ARCHIVE) 

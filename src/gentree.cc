@@ -8,6 +8,7 @@
 #include "rule_loader.h"
 #include "password_data.h"
 #include "tree_builder.h"
+#include "analyze_tree.h"
 
 extern "C" {
 #include <rax.h>
@@ -31,5 +32,7 @@ int main(int argc, const char **argv) {
     rax *rule_tree = tb.get_rule_tree();
     raxShow(pw_tree);
     raxShow(rule_tree);
+    AnalyzeTree at(rule_tree);
+    at.analyze();
     return 0;
 }
