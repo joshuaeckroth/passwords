@@ -24,6 +24,7 @@ class TreeBuilder {
         std::vector<std::pair<std::string, std::string>> choose_passwords(size_t);
         void prune_available(size_t);
         void build(const char*, std::vector<std::string>);
+        bool generates_self(const char*, std::string) const;
     public:
         TreeBuilder(const std::vector<std::string> &target_passwords, const std::vector<std::string> &rules);
         void build(size_t);

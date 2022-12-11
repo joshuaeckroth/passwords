@@ -48,6 +48,13 @@ char* TreeBuilder::apply_rule(const std::string &rule, const std::string &pw) co
     return new_pw;
 }
 
+bool TreeBuilder::generates_self(const char *pw, string rule) const {
+    char *regenerated = this->apply_rule(rule, pw);
+    bool check = 0 == memcmp(regenerated, pw, strlen(pw));
+    free(regenerated);
+    return check;
+}
+
 void TreeBuilder::build(size_t max_cycles) {
     size_t pw_choose_n = this->target_cnt;
     // First cycle, apply all rules to all targets
@@ -121,7 +128,7 @@ void TreeBuilder::build(size_t max_cycles) {
                     //  cout << "Generated PW already exists" << endl;
                     delete pdp;
                     pdp = old;
-                    if (pdp->is_target) {
+                    if (pdp->is_target && !generates_self(new_pw, new_history)) {
                         //    cout << "Existing PW was target" << endl;
                         // Raise score of composite and base
                         rdp_comp->hit_count++; //
