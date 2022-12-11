@@ -48,8 +48,7 @@ char* TreeBuilder::apply_rule(const std::string &rule, const std::string &pw) co
     return new_pw;
 }
 
-void TreeBuilder::build(size_t max_node_cnt) {
-    size_t max_cycles = 10;
+void TreeBuilder::build(size_t max_cycles) {
     size_t pw_choose_n = this->target_cnt;
     // First cycle, apply all rules to all targets
     set<pair<string, string>> new_available; 
@@ -57,6 +56,9 @@ void TreeBuilder::build(size_t max_node_cnt) {
         auto password = password_history.first;
         for (auto &rule : rules) {
             char *new_pw = this->apply_rule(rule, password);
+            if (memcmp(new_pw, password.c_str(), password.size()) == 0) {
+                continue;
+            }
             PasswordData *pdp = new PasswordData(false, false);
             RuleData *rdp = (RuleData*) raxFind(this->rule_tree, (unsigned char*) rule.c_str(), rule.size());
             int check_exists = raxTryInsert(this->pw_tree, (unsigned char*) new_pw, strlen(new_pw), (void*) pdp, NULL);
@@ -74,17 +76,28 @@ void TreeBuilder::build(size_t max_node_cnt) {
     }
     this->available_passwords = new_available;
     cout << "Made it past first cycle" << endl;
-    // for (int idx = 0; idx < max_cycles; idx++) {
+    // for (int idx = 0; idx < max_cycles; idx++) 
     size_t idx = 0;
-    while (idx < 2) {
-    //while (this->pw_cnt <= max_node_cnt && this->available_passwords.size() != 0) {
+    while (idx <= max_cycles) {
+        //while (this->pw_cnt <= max_node_cnt && this->available_passwords.size() != 0) 
         cout << "pw_cnt: " << pw_cnt << endl;
         cout << "available_pw_size: " << this->available_passwords.size() << endl;
         for (auto &password_history : this->choose_passwords(pw_choose_n)) {
             auto password = password_history.first;
             auto history = password_history.second;
             for (auto &rule : rules) {
+//                if (idx == 0) {
+//                    cout << rule << endl;
+//                }
                 char *new_pw = this->apply_rule(rule, password);
+                // a rule than transforms a password into itself is uninteresting
+                if (memcmp(new_pw, password.c_str(), password.size()) == 0) {
+                    continue;
+                }
+//                else {
+//                    cout << "OLD: " << password << endl;
+//                    cout << "NEW: " << new_pw << endl;
+//                }
                 PasswordData *old = nullptr;
                 PasswordData *pdp = new PasswordData(false, false);
                 // base rule, will always exist
@@ -93,37 +106,38 @@ void TreeBuilder::build(size_t max_node_cnt) {
                 RuleData *rdp_comp = new RuleData(0, 1.0f, true);
                 RuleData *rdp_composite_existing = nullptr;
                 // try to insert new composite rule
+//                cout << "COMPOSITE RULE IS: " << new_history.c_str() << endl;
                 int check_rule_composite = raxTryInsert(this->rule_tree, (unsigned char*) new_history.c_str(), new_history.size(), (void*) rdp_comp, (void**) &rdp_composite_existing);
                 int check_exists = raxTryInsert(this->pw_tree, (unsigned char*) new_pw, strlen(new_pw), (void*) pdp, (void**) &old);
                 if (check_rule_composite == 0) { // composite rule already exists
                     //cout << "Comp rule already exists" << endl;
                     delete rdp_comp;
                     rdp_comp = rdp_composite_existing;
-                    if (check_exists == 0) { // generated pw already exists
-                      //  cout << "Generated PW already exists" << endl;
-                        delete pdp;
-                        pdp = old;
-                        if (pdp->is_target) {
+                } else {
+                    //                    cout << "Comp rule DNE" << endl;
+                    this->rule_cnt++;
+                }
+                if (check_exists == 0) { // generated pw already exists
+                    //  cout << "Generated PW already exists" << endl;
+                    delete pdp;
+                    pdp = old;
+                    if (pdp->is_target) {
                         //    cout << "Existing PW was target" << endl;
-                            // Raise score of composite and base
-                            rdp_comp->hit_count++; //
-                            rdp->hit_count++;
-                        } else {
-                          //  cout << "Existing PW was not target" << endl;
-                            
-                            rdp->score *= RULE_SCORE_DECAY_FACTOR;
-                            rdp_comp->score *= RULE_SCORE_DECAY_FACTOR;
-                        }
+                        // Raise score of composite and base
+                        rdp_comp->hit_count++; //
+                        rdp->hit_count++;
                     } else {
-                        this->available_passwords.insert({new_pw, rule});
-                        this->pw_cnt++;
+                        //  cout << "Existing PW was not target" << endl;
+                        rdp->score *= RULE_SCORE_DECAY_FACTOR;
+                        rdp_comp->score *= RULE_SCORE_DECAY_FACTOR;
                     }
                 } else {
-//                    cout << "Comp rule DNE" << endl;
-                    this->rule_cnt++;
+                    this->available_passwords.insert({new_pw, new_history});
+                    this->pw_cnt++;
                 }
                 free(new_pw);
             }
+//            if (idx == 0) cout << endl;
             PasswordData *pdp = (PasswordData*) raxFind(this->pw_tree, (unsigned char*) password.c_str(), password.size());
             pdp->did_apply_rules = true;
         }

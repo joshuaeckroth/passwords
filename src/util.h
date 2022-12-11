@@ -18,6 +18,15 @@
 void md5_bytes_to_hex(const unsigned char*, char*);
 std::string md5(const char*);
 
+template<typename T>
+void print_bits(T *data) {
+    size_t num_bits = sizeof(T) * 8;
+    for (size_t idx = 0; idx < num_bits; idx++) {
+        std::cout << (bool) ((1 << idx) & *data);
+    };
+    std::cout << std::endl;
+}
+
 template<typename Q>
 void print_queue(Q q) {
     for (; !q.empty(); q.pop()) {

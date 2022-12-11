@@ -105,9 +105,9 @@ void GraphBuilder::reset_rule_weights() {
 }
 
 Rule& GraphBuilder::rnd_weighted_select() {
-    while(true) {
+    while (true) {
         for(int i = 0; i < 10; i++) {
-            vector<Rule *> good_rules;
+            vector<Rule*> good_rules;
             float rnd = ((float) random()) / ((float) RAND_MAX);
             for (auto &rule: this->rules) {
                 if (rnd < rule.get_weight()) {

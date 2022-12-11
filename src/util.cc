@@ -1,10 +1,13 @@
 #include <string>
 #include <stdio.h>
+#include <iostream>
 #include "util.h"
 
 extern "C" {
 #include <openssl/md5.h>
 }
+
+using std::cout, std::endl;
 
 void md5_bytes_to_hex(const unsigned char *md5, char *result) {
     char *ptr = result;

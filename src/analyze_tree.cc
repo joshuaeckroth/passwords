@@ -1,4 +1,7 @@
 #include <iostream>
+#include <fstream>
+#include <string>
+#include <stdio.h>
 #include "analyze_tree.h"
 #include "rule_data.h"
 
@@ -6,20 +9,27 @@ extern "C" {
 #include <rax.h>
 }
 
-using std::cout, std::endl;
+using std::cout, std::endl, std::string;
 
 AnalyzeTree::AnalyzeTree(rax *rt) : rule_tree(rt) {}
 
+//  snprintf(char * __restrict __str, size_t __size, const char * __restrict __format, ...) __printflike(3, 4);
+
 void AnalyzeTree::analyze() {
-    cout << "called this" << endl;
+    std::fstream results;
+    results.open("results/analyze_results.tsv", std::ios::out);
     raxIterator it;
     raxStart(&it, this->rule_tree);
-    raxSeek(&it, "^", (unsigned char*) "foo", 3);
+    raxSeek(&it, "^", NULL, 0);
     while (raxNext(&it)) {
-        cout << "iterated" << endl;
         RuleData *rdp = (RuleData*) it.data;
-        //const char 
-        cout << (char*) it.key << endl;
-        cout << rdp->hit_count << endl;
+//        printf("%.*s\n", (int) it.key_len, (const char*) it.key);
+        char *k = (char*) calloc((int) it.key_len + 1, sizeof(char));
+        memcpy(k, it.key, it.key_len);
+//        cout << "Rule: " << k << endl;
+//        cout << "Hit count: " << rdp->hit_count << endl;
+        results << k << "\t" << rdp->hit_count << "\n";
+        free(k);
     }
+    results.close();
 }

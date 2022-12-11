@@ -27,10 +27,10 @@ int main(int argc, const char **argv) {
     vector<string> passwords = PasswordLoader::load_passwords(argv[1]);
     cout << "Loaded passwords successfully..." << endl;
     TreeBuilder tb(passwords, rules);
-    tb.build(100000);
+    tb.build(3);
     rax *pw_tree = tb.get_password_tree();
     rax *rule_tree = tb.get_rule_tree();
-    raxShow(pw_tree);
+//    raxShow(pw_tree);
     raxShow(rule_tree);
     AnalyzeTree at(rule_tree);
     at.analyze();
