@@ -113,19 +113,20 @@ void TreeBuilder::build(size_t max_cycles) {
             auto password = password_history.first;
             auto history = password_history.second;
             for (auto &rule : rules) {
-//                if (idx == 0) {
-//                    cout << rule << endl;
-//                }
+                if (idx == 0) {
+                    cout << rule << endl;
+                }
                 char *new_pw = this->apply_rule(rule, password);
                 // a rule than transforms a password into itself is uninteresting
+                cout << "rule: " << rule << endl;
                 if (memcmp(new_pw, password.c_str(), password.size()) == 0) {
                     free(new_pw);
                     continue;
                 }
-//                else {
-//                    cout << "OLD: " << password << endl;
-//                    cout << "NEW: " << new_pw << endl;
-//                }
+                else {
+                    cout << "OLD: " << password << endl;
+                    cout << "NEW: " << new_pw << endl;
+                }
                 PasswordData *old = nullptr;
                 PasswordData *pdp = new PasswordData(false, false);
                 // base rule, will always exist
@@ -134,7 +135,7 @@ void TreeBuilder::build(size_t max_cycles) {
                 RuleData *rdp_comp = new RuleData(0, 1.0f, true);
                 RuleData *rdp_composite_existing = nullptr;
                 // try to insert new composite rule
-//                cout << "COMPOSITE RULE IS: " << new_history.c_str() << endl;
+                cout << "COMPOSITE RULE IS: " << new_history.c_str() << endl;
                 int check_rule_composite = raxTryInsert(this->rule_tree, (unsigned char*) new_history.c_str(), new_history.size(), (void*) rdp_comp, (void**) &rdp_composite_existing);
                 int check_exists = raxTryInsert(this->pw_tree, (unsigned char*) new_pw, strlen(new_pw), (void*) pdp, (void**) &old);
                 if (check_rule_composite == 0) { // composite rule already exists

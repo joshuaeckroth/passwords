@@ -27,9 +27,9 @@ void AnalyzeTree::analyze() {
 //        printf("%.*s\n", (int) it.key_len, (const char*) it.key);
         char *k = (char*) calloc((int) it.key_len + 1, sizeof(char));
         memcpy(k, it.key, it.key_len);
-//        cout << "Rule: " << k << endl;
-//        cout << "Hit count: " << rdp->hit_count << endl;
         if (rdp->hit_count > 0) {
+            cout << "Rule: " << k << endl;
+            cout << "Hit count: " << rdp->hit_count << endl;
             results << k << "\t" << rdp->hit_count << "\n";
         }
         free(k);
