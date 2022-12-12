@@ -63,12 +63,13 @@ char* TreeBuilder::apply_rule(const std::string &rule, const std::string &pw) co
     char *new_pw = (char*) calloc(RP_PASSWORD_SIZE, sizeof(char));
     _old_apply_rule(rule.c_str(), rule.size(), pw_cstr, pw_size, new_pw);
     free(pw_cstr);
+//    cout << "NEW PW: " << new_pw << endl;
     return new_pw;
 }
 
 bool TreeBuilder::generates_self(const char *pw, string rule) const {
     char *regenerated = this->apply_rule(rule, pw);
-    bool check = 0 == memcmp(regenerated, pw, strlen(pw));
+    bool check = 0 == strcmp(regenerated, pw);
     free(regenerated);
     return check;
 }
@@ -81,7 +82,7 @@ void TreeBuilder::build(size_t max_cycles) {
         auto password = password_history.first;
         for (auto &rule : rules) {
             char *new_pw = this->apply_rule(rule, password);
-            if (memcmp(new_pw, password.c_str(), password.size()) == 0) {
+            if (strcmp(new_pw, password.c_str()) == 0) {
                 free(new_pw);
                 continue;
             }
@@ -119,7 +120,7 @@ void TreeBuilder::build(size_t max_cycles) {
                 char *new_pw = this->apply_rule(rule, password);
                 // a rule than transforms a password into itself is uninteresting
                 cout << "rule: " << rule << endl;
-                if (memcmp(new_pw, password.c_str(), password.size()) == 0) {
+                if (strcmp(new_pw, password.c_str()) == 0) {
                     free(new_pw);
                     continue;
                 }
