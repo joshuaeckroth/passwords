@@ -27,6 +27,7 @@ class TreeBuilder {
         bool generates_self(const char*, std::string) const;
     public:
         TreeBuilder(const std::vector<std::string> &target_passwords, const std::vector<std::string> &rules);
+        ~TreeBuilder();
         void build(size_t);
         rax* get_password_tree();
         rax* get_rule_tree();

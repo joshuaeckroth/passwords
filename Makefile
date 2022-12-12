@@ -9,6 +9,8 @@ endif
 ifeq ($(IS_APPLE_SILICON),1)
 CFLAGS_NATIVE_PW += -arch arm64
 endif
+else
+CFLAGS_NATIVE_PW += -I/usr/include
 endif
 
 CFLAGS_NATIVE_PW += -I external/hashcat/include -I external/hashcat/deps/LZMA-SDK/C -I external/hashcat/deps/zlib -I external/hashcat/deps/zlib/contrib -I external/hashcat/deps/OpenCL-Headers -I external/hashcat/deps/xxHash -I external/hashcat/deps/unrar -I external/hashcat/OpenCL

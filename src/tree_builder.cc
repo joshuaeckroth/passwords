@@ -38,6 +38,24 @@ TreeBuilder::TreeBuilder(const vector<string> &target_passwords, const vector<st
     }
 }
 
+TreeBuilder::~TreeBuilder() {
+    raxIterator it;
+    raxStart(&it, this->rule_tree);
+    raxSeek(&it, "^", NULL, 0);
+    while (raxNext(&it)) {
+        delete (RuleData*)it.data;
+    }
+    raxStop(&it);
+    raxStart(&it, this->pw_tree);
+    raxSeek(&it, "^", NULL, 0);
+    while (raxNext(&it)) {
+        delete (PasswordData*)it.data;
+    }
+    raxStop(&it);
+    raxFree(pw_tree);
+    raxFree(rule_tree);
+}
+
 char* TreeBuilder::apply_rule(const std::string &rule, const std::string &pw) const {
     const size_t pw_size = pw.size();
     char *pw_cstr = (char*) calloc(pw_size+1, sizeof(char));
@@ -64,12 +82,14 @@ void TreeBuilder::build(size_t max_cycles) {
         for (auto &rule : rules) {
             char *new_pw = this->apply_rule(rule, password);
             if (memcmp(new_pw, password.c_str(), password.size()) == 0) {
+                free(new_pw);
                 continue;
             }
             PasswordData *pdp = new PasswordData(false, false);
             RuleData *rdp = (RuleData*) raxFind(this->rule_tree, (unsigned char*) rule.c_str(), rule.size());
             int check_exists = raxTryInsert(this->pw_tree, (unsigned char*) new_pw, strlen(new_pw), (void*) pdp, NULL);
             if (check_exists == 0) { // does exist
+                delete pdp;
                 rdp->hit_count++;
             } else {
                 new_available.insert({new_pw, rule});
@@ -99,6 +119,7 @@ void TreeBuilder::build(size_t max_cycles) {
                 char *new_pw = this->apply_rule(rule, password);
                 // a rule than transforms a password into itself is uninteresting
                 if (memcmp(new_pw, password.c_str(), password.size()) == 0) {
+                    free(new_pw);
                     continue;
                 }
 //                else {

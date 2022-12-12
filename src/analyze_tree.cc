@@ -1,6 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <cstring>
 #include <stdio.h>
 #include "analyze_tree.h"
 #include "rule_data.h"
@@ -33,5 +34,6 @@ void AnalyzeTree::analyze() {
         }
         free(k);
     }
+    raxStop(&it);
     results.close();
 }
