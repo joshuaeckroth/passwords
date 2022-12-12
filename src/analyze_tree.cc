@@ -28,7 +28,9 @@ void AnalyzeTree::analyze() {
         memcpy(k, it.key, it.key_len);
 //        cout << "Rule: " << k << endl;
 //        cout << "Hit count: " << rdp->hit_count << endl;
-        results << k << "\t" << rdp->hit_count << "\n";
+        if (rdp->hit_count > 0) {
+            results << k << "\t" << rdp->hit_count << "\n";
+        }
         free(k);
     }
     results.close();
