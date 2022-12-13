@@ -76,6 +76,7 @@ char* TreeBuilder::apply_rule(const std::string &rule, const std::string &pw) co
 bool TreeBuilder::generates_self(const char *pw, string rule) const {
     char *regenerated = this->apply_rule(rule, pw);
     bool check = 0 == strcmp(regenerated, pw);
+    //if(!check) cout << "Diff: " << pw << " != " << regenerated << " (rule: " << rule << ") " << endl;
     free(regenerated);
     return check;
 }
@@ -148,7 +149,6 @@ void TreeBuilder::build(size_t max_cycles) {
                         target = true;
                     }
                 }
-                free(new_pw);
                 //cout << "Target? " << target << endl;
 
                 // base rule, will always exist
@@ -175,15 +175,14 @@ void TreeBuilder::build(size_t max_cycles) {
                         this->rule_cnt++;
                     }
                     if(target) {
-                        char *new_pw2 = this->apply_rule(rh, new_pw);
-                        if (strcmp(new_pw2, new_pw) != 0) {
+                        if(!generates_self(new_pw, rh)) {
                             rdp_comp->hit_count++;
                         }
-                        free(new_pw2);
                     } else {
                         //rdp_comp->score *= RULE_SCORE_DECAY_FACTOR;
                     }
                 }
+                free(new_pw);
             }
         }
         //cout << "Made it past idx: " << idx << endl;
