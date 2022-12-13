@@ -175,7 +175,11 @@ void TreeBuilder::build(size_t max_cycles) {
                         this->rule_cnt++;
                     }
                     if(target) {
-                        rdp_comp->hit_count++;
+                        char *new_pw2 = this->apply_rule(rh, new_pw);
+                        if (strcmp(new_pw2, new_pw) != 0) {
+                            rdp_comp->hit_count++;
+                        }
+                        free(new_pw2);
                     } else {
                         //rdp_comp->score *= RULE_SCORE_DECAY_FACTOR;
                     }
