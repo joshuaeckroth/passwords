@@ -1,5 +1,6 @@
 #include <iostream>
 #include <vector>
+#include <set>
 #include <string>
 #include <memory>
 #include "util.h"
@@ -14,7 +15,7 @@ extern "C" {
 #include <rax.h>
 }
 
-using std::vector, std::string, std::cout, std::endl;
+using std::set, std::vector, std::string, std::cout, std::endl;
 
 int main(int argc, const char **argv) {
     cout << "gentree starting..." << endl;
@@ -22,12 +23,16 @@ int main(int argc, const char **argv) {
         fprintf(stderr, "Usage: %s <password list> <rule list>\n", argv[0]);
         return -1;
     }
-    vector<string> rules = RuleLoader::load_rules<string>(argv[2]);
+    vector<string> rules_vec = RuleLoader::load_rules<string>(argv[2]);
+    set<string> rules;
+    for(auto r : rules_vec) {
+        rules.insert(r);
+    }
     cout << "Loaded rules successfully..." << endl;
     vector<string> passwords = PasswordLoader::load_passwords(argv[1]);
     cout << "Loaded passwords successfully..." << endl;
-    TreeBuilder tb(passwords, rules, 50);
-    tb.build(1000);
+    TreeBuilder tb(passwords, rules, 200);
+    tb.build(300);
     /*
     cout << "Processed passwords:" << endl;
     rax *pw_tree_processed = tb.get_password_tree_processed();

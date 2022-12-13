@@ -13,7 +13,7 @@ extern "C" {
 class TreeBuilder {
     private:
         char* apply_rule(const std::string &rule, const std::string &pw) const;
-        const std::vector<std::string> rules;
+        std::set<std::string> rules;
         size_t target_cnt;
         size_t pw_cnt = 0;
         size_t rule_cnt = 0;
@@ -25,7 +25,7 @@ class TreeBuilder {
         bool generates_self(const char*, std::string) const;
         bool is_ascii(const char*, size_t) const;
     public:
-        TreeBuilder(const std::vector<std::string> &target_passwords, const std::vector<std::string> &rules, int target_cnt);
+        TreeBuilder(const std::vector<std::string> &target_passwords, std::set<std::string> &rules, int target_cnt);
         ~TreeBuilder();
         void build(size_t);
         rax* get_password_tree_processed();

@@ -20,7 +20,7 @@ extern "C" {
 
 using std::vector, std::string, std::cout, std::endl, std::pair, std::set;
 
-TreeBuilder::TreeBuilder(const vector<string> &target_passwords, const vector<string> &rules, int target_cnt)
+TreeBuilder::TreeBuilder(const vector<string> &target_passwords, set<string> &rules, int target_cnt)
     : rules(std::move(rules)), target_cnt(target_cnt) {
     this->pw_tree_unprocessed = raxNew();
     this->pw_tree_processed = raxNew();
@@ -158,15 +158,15 @@ void TreeBuilder::build(size_t max_cycles) {
                     if(target) {
                         if(!generates_self(new_pw, rh)) {
                             rdp_comp->hit_count++;
+                            if(rdp_comp->hit_count > 5 && !rules.contains(rh)) {
+                                cout << "Adding primitive rule " << rh << endl;
+                                rules.insert(rh);
+                            }
                         }
                         target_hit_count++;
                     } else {
                         //rdp_comp->score *= RULE_SCORE_DECAY_FACTOR;
                         not_target_hit_count++;
-                    }
-                    if(rh == "$1 $2 $3") {
-                        cout << "OLD: " << password << endl;
-                        cout << "NEW: " << new_pw << endl;
                     }
                 }
                 free(new_pw);
@@ -196,7 +196,7 @@ set<string> TreeBuilder::choose_passwords(size_t n) {
     raxSeek(&it, "^", NULL, 0);
     //raxShow(this->pw_tree_unprocessed);
     int i = 0;
-    for(int maxlen = 5 + rand() % 10; maxlen <= 20 && i < n; maxlen++) {
+    for(int maxlen = 4 + rand() % 10; maxlen <= 15 && i < n; maxlen++) {
         while(i < n) {
             if(raxRandomWalk(&it, 0)) {
                 if(strlen((const char*)it.key) <= maxlen) {
@@ -210,12 +210,6 @@ set<string> TreeBuilder::choose_passwords(size_t n) {
         }
     }
     raxStop(&it);
-    i = 0;
-    for(string s : res) {
-        cout << "  > " << s << endl;
-        i++;
-        if(i > 3) break;
-    }
     return res;
 }
 
