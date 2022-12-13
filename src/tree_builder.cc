@@ -90,6 +90,7 @@ void TreeBuilder::build(size_t max_cycles) {
         set<string> next_passwords;
         cout << "idx: " << idx << " of " << max_cycles << " processed: " << this->pw_tree_processed->numnodes << " unprocessed: " << this->pw_tree_unprocessed->numnodes << endl;
         for (auto &password : this->choose_passwords(pw_choose_n)) {
+            set<string> generated_passwords;
             PasswordData *orig_pdp = nullptr;
             raxRemove(pw_tree_unprocessed, (unsigned char*)password.c_str(), password.size()+1, (void**)&orig_pdp);
             raxInsert(this->pw_tree_processed, (unsigned char*) password.c_str(), password.size()+1, (void*) orig_pdp, NULL);
@@ -114,6 +115,12 @@ void TreeBuilder::build(size_t max_cycles) {
                     //cout << "OLD: " << password << endl;
                     //cout << "NEW: " << new_pw << endl;
                 }
+                if(generated_passwords.contains(string(new_pw))) {
+                    free(new_pw);
+                    continue;
+                }
+                generated_passwords.insert(string(new_pw));
+
                 set<string> new_rule_histories;
                 for(string rh : prior_rule_histories) {
                     new_rule_histories.insert(rh + " " + rule);
