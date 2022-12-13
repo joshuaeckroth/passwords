@@ -24,8 +24,7 @@ void AnalyzeTree::analyze() {
     raxSeek(&it, "^", NULL, 0);
     while (raxNext(&it)) {
         RuleData *rdp = (RuleData*) it.data;
-//        printf("%.*s\n", (int) it.key_len, (const char*) it.key);
-        char *k = (char*) calloc((int) it.key_len + 1, sizeof(char));
+        char *k = (char*) malloc((int) it.key_len);
         memcpy(k, it.key, it.key_len);
         if (rdp->hit_count > 0) {
             cout << "Rule: " << k << endl;

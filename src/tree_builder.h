@@ -25,7 +25,7 @@ class TreeBuilder {
         bool generates_self(const char*, std::string) const;
         bool is_ascii(const char*, size_t) const;
     public:
-        TreeBuilder(const std::vector<std::string> &target_passwords, const std::vector<std::string> &rules);
+        TreeBuilder(const std::vector<std::string> &target_passwords, const std::vector<std::string> &rules, int target_cnt);
         ~TreeBuilder();
         void build(size_t);
         rax* get_password_tree_processed();
