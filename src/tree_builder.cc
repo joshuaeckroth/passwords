@@ -25,15 +25,15 @@ TreeBuilder::TreeBuilder(const vector<string> &target_passwords, const vector<st
     this->pw_tree_unprocessed = raxNew();
     this->pw_tree_processed = raxNew();
     this->rule_tree = raxNew();
+    cout << "Adding original passwords to rax..." << endl;
     for (auto &password : target_passwords) {
         PasswordData *pdp = new PasswordData(true);
         int check = raxInsert(this->pw_tree_unprocessed, (unsigned char*) password.c_str(), password.size()+1, (void*) pdp, NULL);
-        this->pw_cnt++;
     }
+    cout << "Adding rules to rax..." << endl;
     for (auto &rule : rules) {
         RuleData *rdp = new RuleData(0, 1.0f, false);
         int check = raxInsert(this->rule_tree, (unsigned char*) rule.c_str(), rule.size()+1, (void*) rdp, NULL);
-        this->rule_cnt++;
     }
 }
 
@@ -84,12 +84,12 @@ bool TreeBuilder::generates_self(const char *pw, string rule) const {
 void TreeBuilder::build(size_t max_cycles) {
     size_t pw_choose_n = this->target_cnt;
     size_t idx = 0;
+    int target_hit_count = 0;
+    int not_target_hit_count = 0;
     while (idx <= max_cycles) {
-        cout << "pw_cnt: " << pw_cnt << endl;
-        for (auto &password_history : this->choose_passwords(pw_choose_n)) {
-            auto password = password_history; //.first;
-                                              //auto history = password_history.second;
-            string history = "";
+        set<string> next_passwords;
+        cout << "idx: " << idx << " of " << max_cycles << " processed: " << this->pw_tree_processed->numnodes << " unprocessed: " << this->pw_tree_unprocessed->numnodes << endl;
+        for (auto &password : this->choose_passwords(pw_choose_n)) {
             PasswordData *orig_pdp = nullptr;
             raxRemove(pw_tree_unprocessed, (unsigned char*)password.c_str(), password.size()+1, (void**)&orig_pdp);
             raxInsert(this->pw_tree_processed, (unsigned char*) password.c_str(), password.size()+1, (void*) orig_pdp, NULL);
@@ -115,14 +115,10 @@ void TreeBuilder::build(size_t max_cycles) {
                     //cout << "NEW: " << new_pw << endl;
                 }
                 set<string> new_rule_histories;
-                if(prior_rule_histories.empty()) {
-                    new_rule_histories.insert(rule);
-                } else {
-                    for(string rh : prior_rule_histories) {
-                        new_rule_histories.insert(rh + rule);
-                        //cout << rh + rule << endl;
-                    }
+                for(string rh : prior_rule_histories) {
+                    new_rule_histories.insert(rh + " " + rule);
                 }
+                new_rule_histories.insert(rule);
                 void *old = nullptr;
                 bool target = false;
                 if((old = raxFind(this->pw_tree_processed, (unsigned char*)new_pw, strlen(new_pw)+1)) != raxNotFound) {
@@ -143,23 +139,12 @@ void TreeBuilder::build(size_t max_cycles) {
                         pdp = (PasswordData*)old;
                         pdp->rule_histories = new_rule_histories;
                     } else {
-                        this->pw_cnt++;
+                        //cout << "Added " << new_pw << endl;
                     }
                     if (pdp->is_target && !generates_self(new_pw, rule)) {
                         target = true;
                     }
                 }
-                //cout << "Target? " << target << endl;
-
-                // base rule, will always exist
-                /*
-                RuleData *rdp = (RuleData*) raxFind(this->rule_tree, (unsigned char*) rule.c_str(), rule.size()+1);
-                if(target) {
-                    rdp->hit_count++;
-                } else {
-                    //rdp->score *= RULE_SCORE_DECAY_FACTOR;
-                }
-                */
                 // try to insert new composite rule
                 for(string rh : new_rule_histories) {
                     RuleData *rdp_comp = new RuleData(0, 1.0f, true);
@@ -167,25 +152,31 @@ void TreeBuilder::build(size_t max_cycles) {
                     //cout << "COMPOSITE RULE IS: " << rh << endl;
                     int check_rule_composite = raxTryInsert(this->rule_tree, (unsigned char*) rh.c_str(), rh.size()+1, (void*) rdp_comp, (void**) &rdp_composite_existing);
                     if (check_rule_composite == 0) { // composite rule already exists
-                                                     //cout << "Comp rule already exists" << endl;
                         delete rdp_comp;
                         rdp_comp = rdp_composite_existing;
-                    } else {
-                        //                    cout << "Comp rule DNE" << endl;
-                        this->rule_cnt++;
                     }
                     if(target) {
                         if(!generates_self(new_pw, rh)) {
                             rdp_comp->hit_count++;
                         }
+                        target_hit_count++;
                     } else {
                         //rdp_comp->score *= RULE_SCORE_DECAY_FACTOR;
+                        not_target_hit_count++;
+                    }
+                    if(rh == "$1 $2 $3") {
+                        cout << "OLD: " << password << endl;
+                        cout << "NEW: " << new_pw << endl;
                     }
                 }
                 free(new_pw);
             }
         }
-        //cout << "Made it past idx: " << idx << endl;
+        cout << "target hit count: " << target_hit_count
+             << ", not target hit count: " << not_target_hit_count
+             << " = " << 100*((double)target_hit_count)/(target_hit_count + not_target_hit_count)
+             << "%" << endl;
+        target_hit_count = not_target_hit_count = 0;
         idx++;
     }
 }
@@ -203,22 +194,28 @@ set<string> TreeBuilder::choose_passwords(size_t n) {
     raxIterator it;
     raxStart(&it, this->pw_tree_unprocessed);
     raxSeek(&it, "^", NULL, 0);
-    for(size_t i = 0; i < n; i++) {
-        if(raxRandomWalk(&it, 0)) {
-            if(strlen((const char*)it.key) < 15) {
-                res.insert(string((const char*)it.key));
+    //raxShow(this->pw_tree_unprocessed);
+    int i = 0;
+    for(int maxlen = 5 + rand() % 10; maxlen <= 20 && i < n; maxlen++) {
+        while(i < n) {
+            if(raxRandomWalk(&it, 0)) {
+                if(strlen((const char*)it.key) <= maxlen) {
+                    res.insert(string((const char*)it.key));
+                    i++;
+                }
+            } else {
+                i = n;
+                break;
             }
-        } else {
-            break;
         }
     }
     raxStop(&it);
-    /*
-    cout << "Done choosing passwords:" << endl;
+    i = 0;
     for(string s : res) {
         cout << "  > " << s << endl;
+        i++;
+        if(i > 3) break;
     }
-    */
     return res;
 }
 

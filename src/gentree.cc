@@ -26,8 +26,8 @@ int main(int argc, const char **argv) {
     cout << "Loaded rules successfully..." << endl;
     vector<string> passwords = PasswordLoader::load_passwords(argv[1]);
     cout << "Loaded passwords successfully..." << endl;
-    TreeBuilder tb(passwords, rules, 1000);
-    tb.build(100);
+    TreeBuilder tb(passwords, rules, 50);
+    tb.build(1000);
     /*
     cout << "Processed passwords:" << endl;
     rax *pw_tree_processed = tb.get_password_tree_processed();
