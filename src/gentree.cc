@@ -28,9 +28,13 @@ int main(int argc, const char **argv) {
     cout << "Loaded passwords successfully..." << endl;
     TreeBuilder tb(passwords, rules);
     tb.build(3);
-    rax *pw_tree = tb.get_password_tree();
+    cout << "Processed passwords:" << endl;
+    rax *pw_tree_processed = tb.get_password_tree_processed();
+    raxShow(pw_tree_processed);
+    cout << "Unprocessed passwords:" << endl;
+    rax *pw_tree_unprocessed = tb.get_password_tree_unprocessed();
+    raxShow(pw_tree_unprocessed);
     rax *rule_tree = tb.get_rule_tree();
-//    raxShow(pw_tree);
     raxShow(rule_tree);
     AnalyzeTree at(rule_tree);
     at.analyze();
