@@ -1,6 +1,7 @@
 #include <string>
 #include <memory>
 #include <cstring>
+#include <fstream>
 #include <vector>
 #include <iostream>
 #include <utility>
@@ -8,6 +9,7 @@
 #include "tree_builder.h"
 #include "password_data.h"
 #include "rule_data.h"
+#include "rule.h"
 
 extern "C" {
 #include <rax.h>
@@ -35,6 +37,8 @@ TreeBuilder::TreeBuilder(const vector<string> &target_passwords, set<string> &ru
         RuleData *rdp = new RuleData(0, 1.0f, false);
         int check = raxInsert(this->rule_tree, (unsigned char*) rule.c_str(), rule.size()+1, (void*) rdp, NULL);
     }
+
+    initialize_rule_replacements();
 }
 
 TreeBuilder::~TreeBuilder() {
@@ -86,6 +90,9 @@ void TreeBuilder::build(size_t max_cycles) {
     size_t idx = 0;
     int target_hit_count = 0;
     int not_target_hit_count = 0;
+    std::fstream statsout;
+    statsout.open("results/stats.csv", std::ios::out);
+    statsout << "iteration,processed,unprocessed,hitcount,nothitcount,hitpct\n";
     while (idx <= max_cycles) {
         set<string> next_passwords;
         cout << "idx: " << idx << " of " << max_cycles << " processed: " << this->pw_tree_processed->numnodes << " unprocessed: " << this->pw_tree_unprocessed->numnodes << endl;
@@ -97,23 +104,15 @@ void TreeBuilder::build(size_t max_cycles) {
             set<string> prior_rule_histories = orig_pdp->rule_histories;
             PasswordData *pdp = nullptr;
             for (auto &rule : rules) {
-                if (idx == 0) {
-                    //cout << rule << endl;
-                }
                 char *new_pw = this->apply_rule(rule, password);
                 if(!is_ascii(new_pw, strlen(new_pw))) {
                     free(new_pw);
                     continue;
                 }
                 // a rule than transforms a password into itself is uninteresting
-                //cout << "rule: " << rule << endl;
                 if (strcmp(new_pw, password.c_str()) == 0) {
                     free(new_pw);
                     continue;
-                }
-                else {
-                    //cout << "OLD: " << password << endl;
-                    //cout << "NEW: " << new_pw << endl;
                 }
                 if(generated_passwords.contains(string(new_pw))) {
                     free(new_pw);
@@ -123,8 +122,13 @@ void TreeBuilder::build(size_t max_cycles) {
 
                 set<string> new_rule_histories;
                 for(string rh : prior_rule_histories) {
-                    new_rule_histories.insert(rh + " " + rule);
+                    string rh2 = simplify_rule(rh + " " + rule, password);
+                    if(!rh2.empty()) {
+                        //cout << "Inserting " << rh2 << endl;
+                        new_rule_histories.insert(rh2);
+                    }
                 }
+                if(!prior_rule_histories.empty() && new_rule_histories.empty()) continue;
                 new_rule_histories.insert(rule);
                 void *old = nullptr;
                 bool target = false;
@@ -163,12 +167,10 @@ void TreeBuilder::build(size_t max_cycles) {
                         rdp_comp = rdp_composite_existing;
                     }
                     if(target) {
-                        if(!generates_self(new_pw, rh)) {
-                            rdp_comp->hit_count++;
-                            if(rdp_comp->hit_count > 5 && !rules.contains(rh)) {
-                                cout << "Adding primitive rule " << rh << endl;
-                                rules.insert(rh);
-                            }
+                        rdp_comp->hit_count++;
+                        if(rdp_comp->hit_count > 5 && !rules.contains(rh)) {
+                            cout << "Adding primitive rule " << rh << endl;
+                            rules.insert(rh);
                         }
                         target_hit_count++;
                     } else {
@@ -179,13 +181,18 @@ void TreeBuilder::build(size_t max_cycles) {
                 free(new_pw);
             }
         }
+        double pct = 100*((double)target_hit_count)/(target_hit_count + not_target_hit_count);
         cout << "target hit count: " << target_hit_count
              << ", not target hit count: " << not_target_hit_count
-             << " = " << 100*((double)target_hit_count)/(target_hit_count + not_target_hit_count)
-             << "%" << endl;
+             << " = " << pct << "%" << endl;
+        statsout << idx << "," << this->pw_tree_processed->numnodes << ","
+                 << this->pw_tree_unprocessed->numnodes << ","
+                 << target_hit_count << "," << not_target_hit_count << ","
+                 << pct << "\n";
         target_hit_count = not_target_hit_count = 0;
         idx++;
     }
+    statsout.close();
 }
 
 float TreeBuilder::weight_password(pair<string, string> password_history) {
@@ -203,10 +210,10 @@ set<string> TreeBuilder::choose_passwords(size_t n) {
     raxSeek(&it, "^", NULL, 0);
     //raxShow(this->pw_tree_unprocessed);
     int i = 0;
-    for(int maxlen = 4 + rand() % 10; maxlen <= 15 && i < n; maxlen++) {
+    for(int maxlen = 10; maxlen <= 20 && i < n; maxlen++) {
         while(i < n) {
             if(raxRandomWalk(&it, 0)) {
-                if(strlen((const char*)it.key) <= maxlen) {
+                if(strlen((const char*)it.key) <= maxlen && rand() % 10 < 5) {
                     res.insert(string((const char*)it.key));
                     i++;
                 }

@@ -22,4 +22,7 @@ class Rule {
         friend std::ostream& operator<<(std::ostream &os, const Rule &r);
 };
 
+void initialize_rule_replacements();
+std::string simplify_rule(std::string rule, std::string password);
+
 #endif /* RULE_H */

@@ -1,6 +1,7 @@
 #include <string>
 #include <iostream>
 #include <utility>
+#include <vector>
 #include <regex>
 #include "rule.h"
 
@@ -10,7 +11,7 @@ extern "C" {
 #include <rp_cpu.h>
 }
 
-using std::string, std::endl, std::cout, std::regex, std::regex_replace;
+using std::string, std::endl, std::cout, std::regex, std::regex_replace, std::vector, std::pair, std::get;
 
 Rule::Rule(string s) : raw(std::move(s)) {
     clean_rule = regex_replace(regex_replace(raw, regex("\""), "QUOTE"), regex("\t"), "\\t");
@@ -61,3 +62,30 @@ std::ostream& operator<<(std::ostream &os, const Rule &r) {
     os << "hashcat function: " << r.get_rule_raw() << ", weight: " << r.get_weight();
     return os;
 }
+
+vector<pair<regex, string>> rule_replacements;
+void initialize_rule_replacements() {
+    rule_replacements.push_back(pair<regex, string>("(^| )[ulcCt] +([ulcC])", "$2"));
+    rule_replacements.push_back(pair<regex, string>("(^| )([rkKt]) +\\2", ""));
+    rule_replacements.push_back(pair<regex, string>("\\^. +\\[", ""));
+    rule_replacements.push_back(pair<regex, string>("\\$. +\\]", ""));
+    rule_replacements.push_back(pair<regex, string>("(^| )\\{ +\\}", ""));
+    rule_replacements.push_back(pair<regex, string>("(^| )\\} +\\{", ""));
+    rule_replacements.push_back(pair<regex, string>("\\^. +(\\$. +|[\\]ulcCt] +)+\\[", "$1"));
+    rule_replacements.push_back(pair<regex, string>("\\$. +(\\^. +|[\\[ulcCt] +)+\\]", "$1"));
+    rule_replacements.push_back(pair<regex, string>(" +", " "));
+    rule_replacements.push_back(pair<regex, string>(" $", ""));
+    rule_replacements.push_back(pair<regex, string>("^ ", ""));
+}
+
+string simplify_rule(string rule, string password) {
+    string result;
+    for(auto rep : rule_replacements) {
+        result = regex_replace(rule, get<0>(rep), get<1>(rep));
+        if(result != rule) {
+            return simplify_rule(result, password);
+        }
+    }
+    return result;
+}
+
