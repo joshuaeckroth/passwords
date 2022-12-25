@@ -65,20 +65,34 @@ std::ostream& operator<<(std::ostream &os, const Rule &r) {
 
 vector<pair<regex, string>> rule_replacements;
 void initialize_rule_replacements() {
-    rule_replacements.push_back(pair<regex, string>("(^| )[ulcCt] +([ulcC])", "$2"));
-    rule_replacements.push_back(pair<regex, string>("(^| )([rkKt]) +\\2", ""));
-    rule_replacements.push_back(pair<regex, string>("\\^. +\\[", ""));
-    rule_replacements.push_back(pair<regex, string>("\\$. +\\]", ""));
-    rule_replacements.push_back(pair<regex, string>("(^| )\\{ +\\}", ""));
-    rule_replacements.push_back(pair<regex, string>("(^| )\\} +\\{", ""));
-    rule_replacements.push_back(pair<regex, string>("\\^. +(\\$. +|[\\]ulcCt] +)+\\[", "$1"));
-    rule_replacements.push_back(pair<regex, string>("\\$. +(\\^. +|[\\[ulcCt] +)+\\]", "$1"));
+    rule_replacements.push_back(pair<regex, string>("(^| )[ulcCt] +([ulcC])($| )", "$1$2$3"));
+    rule_replacements.push_back(pair<regex, string>("(^| )l t", "$1u"));
+    rule_replacements.push_back(pair<regex, string>("(^| )u t", "$1l"));
+    rule_replacements.push_back(pair<regex, string>("(^| )c t", "$1C"));
+    rule_replacements.push_back(pair<regex, string>("(^| )C t", "$1c"));
+    rule_replacements.push_back(pair<regex, string>("(^| )([rkKt]) +\\2", "$1"));
+    rule_replacements.push_back(pair<regex, string>("(^| )\\^\\S +\\[", "$1"));
+    rule_replacements.push_back(pair<regex, string>("(^| )\\$\\S +\\]", "$1"));
+    rule_replacements.push_back(pair<regex, string>("(^| )\\{ +\\}", "$1"));
+    rule_replacements.push_back(pair<regex, string>("(^| )\\} +\\{", "$1"));
+    rule_replacements.push_back(pair<regex, string>("(^| )\\^\\S +(\\$\\S +|[\\]ulcCt] +)+\\[", "$1$2"));
+    rule_replacements.push_back(pair<regex, string>("(^| )\\$\\S +(\\^\\S +|[\\[ulcCt] +)+\\]", "$1$2"));
+    rule_replacements.push_back(pair<regex, string>("(^| )\\$\\S \\} \\[", "$1"));
+    rule_replacements.push_back(pair<regex, string>("(^| )\\^\\S \\{ \\]", "$1"));
+    rule_replacements.push_back(pair<regex, string>("(^| )\\} \\[", "$1]"));
+    rule_replacements.push_back(pair<regex, string>("(^| )\\{ \\]", "$1["));
+    rule_replacements.push_back(pair<regex, string>("(^| )\\} s(\\S\\S) \\[", "$1$2 ]"));
+    rule_replacements.push_back(pair<regex, string>("(^| )\\{ s(\\S\\S) \\]", "$1$2 ["));
+    rule_replacements.push_back(pair<regex, string>("(^| )\\] \\^(\\S) \\{", "$1] $$2"));
+    rule_replacements.push_back(pair<regex, string>("(^| )\\[ \\$(\\S) \\}", "$1[ ^$2"));
+    rule_replacements.push_back(pair<regex, string>("(^| )\\$(\\S) \\}", "$1^$2"));
+    rule_replacements.push_back(pair<regex, string>("(^| )\\^(\\S) \\{", "$1$$2"));
     rule_replacements.push_back(pair<regex, string>(" +", " "));
     rule_replacements.push_back(pair<regex, string>(" $", ""));
     rule_replacements.push_back(pair<regex, string>("^ ", ""));
 }
 
-string simplify_rule(string rule, string password) {
+string simplify_rule(const string& rule, const string& password) {
     string result;
     for(auto rep : rule_replacements) {
         result = regex_replace(rule, get<0>(rep), get<1>(rep));

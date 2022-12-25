@@ -1,5 +1,12 @@
 
 
+1000 50 -> 3015/100000 (753 rules)
+1000 500 -> 3186/10000 (1195 rules)
+
+1000 50 -> 3015 (760 rules) (14min)
+
+
+
 neo4j:
 
 git clone https://github.com/majensen/libneo4j-client.git libneo4j-client-v4

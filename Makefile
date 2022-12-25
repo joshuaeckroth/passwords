@@ -1,4 +1,4 @@
-CXXFLAGS += -std=c++20 -O0 -g
+CXXFLAGS += -std=c++20 -O3 -g
 CFLAGS_NATIVE_PW := $(CFLAGS)
 CFLAGS_NATIVE_PW += -DWITH_HWMON
 
@@ -81,7 +81,7 @@ src/password_data.o: src/password_data.cc src/password_data.h
 src/rule_data.o: src/rule_data.cc src/rule_data.h
 	$(CXX) $(CXXFLAGS) -c src/rule_data.cc -o src/rule_data.o
 
-src/tree_builder.o: src/tree_builder.cc $(RADIX_ROOT)/rax.h src/password_data.h src/rule_data.h src/rule.h $(HC_ARCHIVE)
+src/tree_builder.o: src/tree_builder.cc src/tree_builder.h $(RADIX_ROOT)/rax.h src/password_data.h src/rule_data.h src/rule.h $(HC_ARCHIVE)
 	$(CXX) $(CXXFLAGS) $(CFLAGS_NATIVE_PW) $(RADIX_FLAGS) $(LFLAGS_NATIVE) -c src/tree_builder.cc -o src/tree_builder.o $(HC_ARCHIVE)
 
 src/analyze_tree.o: src/analyze_tree.cc $(RADIX_ROOT)/rax.h src/analyze_tree.h src/rule_data.h
