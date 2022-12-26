@@ -3,6 +3,13 @@
 
 #include <set>
 #include <string>
+#include <vector>
+
+enum StrengthMetric {
+    PROBABILITY,
+    INDEX,
+    PARTIAL_GUESSING
+};
 
 struct PasswordData {
     std::string password;
@@ -11,8 +18,7 @@ struct PasswordData {
     int max_rule_size;
     std::set<std::string> rule_histories;
     PasswordData(std::string, bool, int);
-
-    double estimate_password_complexity() const;
+    double estimate_password_strength(const std::vector<double> &probabilities, size_t, StrengthMetric) const;
 };
 
 #endif /* PASSWORD_DATA */

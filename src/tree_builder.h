@@ -18,8 +18,10 @@ class TreeBuilder {
         struct password_complexity_comparer {
             // if this bool function returns true, it means a is less than b, so b is preferred over a
             bool operator() (const PasswordData*& a, const PasswordData*& b) {
-                if(a->max_rule_size != b->max_rule_size) return a->max_rule_size > b->max_rule_size;
-                else return a->complexity > b->complexity;
+                if (a->max_rule_size != b->max_rule_size)
+                    return a->max_rule_size > b->max_rule_size;
+                else
+                    return a->complexity > b->complexity;
             }
         } pwcomparer;
 
