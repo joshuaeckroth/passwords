@@ -19,25 +19,25 @@ using std::set, std::vector, std::string, std::cout, std::endl;
 
 int main(int argc, const char **argv) {
     cout << "gentree starting..." << endl;
-    if(argc != 6) {
-        fprintf(stderr, "Usage: %s <source word list> <password list> <rule list> <pwd count per cycle> <num cycles>\n", argv[0]);
+    if (argc < 5 || argc > 6) {
+        fprintf(stderr, "Usage: %s <password list> <rule list> <pwd count per cycle> <num cycles> <optional: dictionary>\n", argv[0]);
         return -1;
     }
-    vector<string> rules_vec = RuleLoader::load_rules<string>(argv[3]);
+    vector<string> rules_vec = RuleLoader::load_rules<string>(argv[2]);
     set<string> rules;
-    for(auto r : rules_vec) {
+    for (auto r : rules_vec) {
         rules.insert(r);
     }
     cout << "Loaded rules successfully..." << endl;
-
-    vector<string> source_words = PasswordLoader::load_passwords(argv[1]);
-    cout << "Loaded source words successfully..." << endl;
-
-    vector<string> passwords = PasswordLoader::load_passwords(argv[2]);
+    vector<string> passwords = PasswordLoader::load_passwords(argv[1]);
     cout << "Loaded passwords successfully..." << endl;
-
-    TreeBuilder tb(source_words, passwords, rules, atoi(argv[4]));
-    tb.build(atoi(argv[5]));
+    vector<string> *dict_words = nullptr;
+    if (argc == 6) {
+        vector<string> dw = PasswordLoader::load_passwords(argv[5]);
+        dict_words = &dw;
+    }
+    TreeBuilder tb(passwords, dict_words, rules, atoi(argv[3]));
+    tb.build(atoi(argv[4]));
     /*
     cout << "Processed passwords:" << endl;
     rax *pw_tree_processed = tb.get_password_tree_processed();

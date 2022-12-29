@@ -18,11 +18,9 @@ class TreeBuilder {
         struct password_complexity_comparer {
             // if this bool function returns true, it means a is less than b, so b is preferred over a
             bool operator() (const PasswordData*& a, const PasswordData*& b) {
-                if(a->max_rule_size != b->max_rule_size) return a->max_rule_size > b->max_rule_size;
-                else return a->complexity > b->complexity;
+                return a->complexity > b->complexity;
             }
         } pwcomparer;
-
         char* apply_rule(const std::string &rule, const std::string &pw) const;
         std::set<std::string> rules;
         size_t target_cnt;
@@ -38,7 +36,7 @@ class TreeBuilder {
         bool is_ascii(const char*, size_t) const;
         double estimate_password_complexity(std::string) const;
     public:
-        TreeBuilder(const std::vector<std::string> &source_words, const std::vector<std::string> &target_passwords, std::set<std::string> &rules, int target_cnt);
+        TreeBuilder(const std::vector<std::string> &target_passwords, const std::vector<std::string> *dict_words, std::set<std::string> &rules, int target_cnt);
         ~TreeBuilder();
         void build(size_t);
         rax* get_password_tree_processed();

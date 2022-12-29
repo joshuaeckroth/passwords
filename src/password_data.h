@@ -8,10 +8,8 @@ struct PasswordData {
     std::string password;
     double complexity;
     bool is_target;
-    int max_rule_size;
     std::set<std::string> rule_histories;
-    PasswordData(std::string, bool, int);
-
+    PasswordData(std::string, bool);
     double estimate_password_complexity() const;
 };
 

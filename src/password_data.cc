@@ -2,8 +2,8 @@
 
 using std::string;
 
-PasswordData::PasswordData(string password, bool is_target, int max_rule_size)
-    : password(password), is_target(is_target), max_rule_size(max_rule_size) {
+PasswordData::PasswordData(string password, bool is_target)
+    : password(password), is_target(is_target) {
         complexity = estimate_password_complexity();
     }
 
