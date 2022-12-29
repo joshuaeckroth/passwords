@@ -38,7 +38,8 @@ int main(int argc, const char **argv) {
         dict_words = &dw;
     }
     TreeBuilder tb(passwords, dict_words, rules, atoi(argv[3]));
-    tb.build(atoi(argv[4]));
+    tb.check_intermediate(0, "$1 $2 $3 { }", "password123");
+    //tb.build(atoi(argv[4]));
     /*
     cout << "Processed passwords:" << endl;
     rax *pw_tree_processed = tb.get_password_tree_processed();
