@@ -5,12 +5,10 @@
 #include <string>
 
 struct PasswordData {
-    std::string password;
-    double complexity;
+    float score;
     bool is_target;
     std::set<std::string> rule_histories;
-    PasswordData(std::string, bool);
-    double estimate_password_complexity() const;
+    PasswordData(bool, float);
 };
 
 #endif /* PASSWORD_DATA */
