@@ -7,8 +7,9 @@
 struct PasswordData {
     float score;
     bool is_target;
+    unsigned int orig_idx;
     std::set<std::string> rule_histories;
-    PasswordData(bool, float);
+    PasswordData(bool, float, unsigned int);
 };
 
 #endif /* PASSWORD_DATA */

@@ -29,7 +29,8 @@ int main(int argc, const char **argv) {
         rules.insert(r);
     }
     cout << "Loaded rules successfully..." << endl;
-    vector<string> passwords = PasswordLoader::load_passwords(argv[1]);
+    vector<string> pws = PasswordLoader::load_passwords(argv[1]);
+    vector<string> *passwords = &pws;
     cout << "Loaded passwords successfully..." << endl;
     vector<string> *dict_words = nullptr;
     if (argc == 6) {

@@ -24,6 +24,7 @@ class TreeBuilder {
             }
         } pwcomparer;
         char* apply_rule(const std::string &rule, const std::string &pw) const;
+        const std::vector<std::string> *targets;
         std::set<std::string> rules;
         size_t target_cnt;
         size_t pw_cnt = 0;
@@ -35,9 +36,10 @@ class TreeBuilder {
         float weight_password(std::pair<std::string, std::string>);
         std::set<QueueEntry> choose_passwords(size_t);
         bool generates_self(const char*, std::string) const;
+        std::string strip_intermediate(unsigned int, std::string, const char*) const;
         bool is_ascii(const char*, size_t) const;
     public:
-        TreeBuilder(const std::vector<std::string> &target_passwords, const std::vector<std::string> *dict_words, std::set<std::string> &rules, int target_cnt);
+        TreeBuilder(const std::vector<std::string> *target_passwords, const std::vector<std::string> *dict_words, std::set<std::string> &rules, int target_cnt);
         ~TreeBuilder();
         void build(size_t);
         rax* get_password_tree_processed();
