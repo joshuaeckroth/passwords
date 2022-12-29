@@ -113,25 +113,21 @@ bool TreeBuilder::check_intermediate(unsigned int orig_target_idx, string rule, 
     const size_t rule_size = rule.size();
     string password = this->targets->at(orig_target_idx);
     vector<size_t> space_indices;
-//    space_indices.reserve(rule_size / 2);
+    space_indices.reserve(rule_size / 2);
     for (size_t idx = 0; idx < rule_size; idx++) {
         if (' ' == rule[idx]) {
-//            space_indices.push_back(idx);
+            space_indices.push_back(idx);
         }
     }
     vector<char*> intermediate_pws;
     intermediate_pws.reserve(rule_size / 2);
-    cout << "si size: " << space_indices.size() << endl;
-    //for (size_t idx = 0; idx < space_indices.size(); idx++) {
     for (size_t &si : space_indices) {
-        //const size_t si = space_indices[idx];
-//        auto subs = rule.substr(0, si);
-        cout << "subs " << "hi" << " for si: " << si << endl;
-//        char *new_pw = this->apply_rule(subs, password.c_str());
-//        intermediate_pws.push_back(new_pw);
+        auto subs = rule.substr(0, si);
+        char *new_pw = this->apply_rule(subs, password.c_str());
+        intermediate_pws.push_back(new_pw);
     }
     bool flag = true;
-    for (size_t i = intermediate_pws.size()-1; i >= 0; i--) {
+    for (size_t i = 0; i < intermediate_pws.size(); i++) {
         if (strcmp(intermediate_pws[i], pw) == 0) {
             flag = false;
         }
