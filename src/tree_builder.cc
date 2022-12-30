@@ -88,7 +88,7 @@ TreeBuilder::~TreeBuilder() {
     raxFree(rule_tree);
 }
 
-char* TreeBuilder::apply_rule(const std::string &rule, const std::string &pw) const {
+char* TreeBuilder::apply_rule(const std::string &rule, const std::string &pw) {
     const size_t pw_size = pw.size();
     char *pw_cstr = (char*) calloc(pw_size+1, sizeof(char));
     strcpy(pw_cstr, pw.c_str());
