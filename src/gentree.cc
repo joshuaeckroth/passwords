@@ -38,8 +38,8 @@ int main(int argc, const char **argv) {
         dict_words = &dw;
     }
     TreeBuilder tb(passwords, dict_words, rules, atoi(argv[3]));
-    tb.check_intermediate(0, "$1 $2 $3 { }", "password123");
-    //tb.build(atoi(argv[4]));
+    //cout << tb.check_intermediate(0, "$1 $2 $3 { }", "password123") << endl;
+    tb.build(atoi(argv[4]));
     /*
     cout << "Processed passwords:" << endl;
     rax *pw_tree_processed = tb.get_password_tree_processed();
@@ -47,7 +47,7 @@ int main(int argc, const char **argv) {
     cout << "Unprocessed passwords:" << endl;
     rax *pw_tree_unprocessed = tb.get_password_tree_unprocessed();
     raxShow(pw_tree_unprocessed);
-    */
+     */
     rax *rule_tree = tb.get_rule_tree();
     //raxShow(rule_tree);
     AnalyzeTree at(rule_tree);

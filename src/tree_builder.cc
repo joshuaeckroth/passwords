@@ -18,7 +18,7 @@ extern "C" {
 #include <rp_cpu.h>
 }
 
-#define SCORE_DECAY_FACTOR 0.9f
+#define SCORE_DECAY_FACTOR 0.99f
 
 using std::vector, std::string, std::cout, std::endl, std::pair, std::set;
 
@@ -35,9 +35,9 @@ TreeBuilder::TreeBuilder(const vector<string> *target_passwords, const vector<st
     // other idea: start with standard dictionary (english words) and try to hit targets (rockyou) ?
     int i = 0;
     for (auto &password : *target_passwords) {
-        PasswordData *pdp = new PasswordData(false, pw_cnt - i, i);
+        auto *pdp = new PasswordData(true, pw_cnt - i, i);
         raxInsert(this->pw_tree_unprocessed, (unsigned char*) password.c_str(), password.size()+1, (void*) pdp, NULL);
-        this->pwqueue.push({password, pdp});
+        this->pwqueue.emplace(password, pdp);
         i++;
     }
     if (dict_words != nullptr) {
@@ -99,17 +99,7 @@ char* TreeBuilder::apply_rule(const std::string &rule, const std::string &pw) co
     return new_pw;
 }
 
-bool TreeBuilder::generates_self(const char *pw, string rule) const {
-    char *regenerated = this->apply_rule(rule, pw);
-    bool check = 0 == strcmp(regenerated, pw);
-    //if(!check) cout << "Diff: " << pw << " != " << regenerated << " (rule: " << rule << ") " << endl;
-    free(regenerated);
-    return check;
-}
-
 bool TreeBuilder::check_intermediate(unsigned int orig_target_idx, string rule, const char *pw) const {
-    cout << "***** PW IS: " << pw << endl;
-    string new_rule = rule;
     const size_t rule_size = rule.size();
     string password = this->targets->at(orig_target_idx);
     vector<size_t> space_indices;
@@ -123,17 +113,18 @@ bool TreeBuilder::check_intermediate(unsigned int orig_target_idx, string rule, 
     intermediate_pws.reserve(rule_size / 2);
     for (size_t &si : space_indices) {
         auto subs = rule.substr(0, si);
-        char *new_pw = this->apply_rule(subs, password.c_str());
+        char *new_pw = this->apply_rule(subs, password);
         intermediate_pws.push_back(new_pw);
     }
     bool flag = true;
-    for (size_t i = 0; i < intermediate_pws.size(); i++) {
-        if (strcmp(intermediate_pws[i], pw) == 0) {
+    for (auto & intermediate_pw : intermediate_pws) {
+        if (strcmp(intermediate_pw, pw) == 0) {
             flag = false;
+//            cout << pw << " " << password << " rule: " << rule << " " << i << " intermediate " << intermediate_pws[i] << " result " << flag << endl;
         }
     }
-    for (size_t i = 0; i < intermediate_pws.size(); i++) {
-        free(intermediate_pws[i]);
+    for (auto & intermediate_pw : intermediate_pws) {
+        free(intermediate_pw);
     }
     return flag;
 }
@@ -150,11 +141,11 @@ void TreeBuilder::build(size_t max_cycles) {
         cout << "idx: " << idx << " of " << max_cycles << " processed: " << this->pw_tree_processed->numele << " unprocessed: " << this->pw_tree_unprocessed->numele << endl;
         set<QueueEntry> chosen = this->choose_passwords(pw_choose_n);
         if (chosen.empty()) break;
-        int rule_history_count = 0;
+        size_t rule_history_count = 0;
         for (auto &queue_entry : chosen) {
             string password = queue_entry.first;
             float parent_score = queue_entry.second->score;
-            float orig_idx_temp = queue_entry.second->orig_idx;
+            unsigned int orig_idx_temp = queue_entry.second->orig_idx;
             PasswordData *orig_pdp = nullptr;
             raxRemove(this->pw_tree_unprocessed, (unsigned char*) password.c_str(), password.size()+1, (void**) &orig_pdp);
             raxInsert(this->pw_tree_processed, (unsigned char*) password.c_str(), password.size()+1, (void*) orig_pdp, NULL);
@@ -172,7 +163,7 @@ void TreeBuilder::build(size_t max_cycles) {
                 set<string> new_rule_histories;
                 for (const string &rh : prior_rule_histories) {
                     string rh2 = simplify_rule(rh + " " + rule, password);
-                    if (!rh2.empty() && rh2.size() < 10) {
+                    if (!rh2.empty() && rh2.size() < 10 && check_intermediate(orig_idx_temp, rh2, new_pw)) {
                         //cout << "Inserting " << rh2 << " for " << new_pw << " from " << password << endl;
                         new_rule_histories.insert(rh2);
                     }
@@ -194,7 +185,7 @@ void TreeBuilder::build(size_t max_cycles) {
                         delete pdp;
                         pdp = (PasswordData*) old;
                     } else {
-                        this->pwqueue.push({new_pw, pdp});
+                        this->pwqueue.emplace(new_pw, pdp);
                     }
                 }
                 pdp->rule_histories = new_rule_histories;
@@ -203,8 +194,8 @@ void TreeBuilder::build(size_t max_cycles) {
                 }
                 // try to insert new composite rule
                 if (target) {
-                    for (string rh : new_rule_histories) {
-                        RuleData *rdp_comp = new RuleData(0, 1.0f, true);
+                    for (const string& rh : new_rule_histories) {
+                        auto *rdp_comp = new RuleData(0, 1.0f, true);
                         RuleData *rdp_composite_existing = nullptr;
                         //cout << "COMPOSITE RULE IS: " << rh << endl;
                         int check_rule_composite = raxTryInsert(this->rule_tree, (unsigned char*) rh.c_str(), rh.size()+1, (void*) rdp_comp, (void**) &rdp_composite_existing);
@@ -250,28 +241,6 @@ set<QueueEntry> TreeBuilder::choose_passwords(size_t n) {
         //cout << pdp->password << " " << pdp->is_target << " = " << pdp->hitcount << "/" << pdp->complexity << endl;
         res.insert(qe);
     }
-
-    /*
-    raxIterator it;
-    raxStart(&it, this->pw_tree_unprocessed);
-    raxSeek(&it, "^", NULL, 0);
-    //raxShow(this->pw_tree_unprocessed);
-    int i = 0;
-    for(int maxlen = 10; maxlen <= 20 && i < n; maxlen++) {
-        while(i < n) {
-            if(raxRandomWalk(&it, 0)) {
-                if(strlen((const char*)it.key) <= maxlen && rand() % 10 < 5) {
-                    res.insert(string((const char*)it.key));
-                    i++;
-                }
-            } else {
-                i = n;
-                break;
-            }
-        }
-    }
-    raxStop(&it);
-    */
     return res;
 }
 
@@ -287,7 +256,7 @@ rax* TreeBuilder::get_rule_tree() {
     return this->rule_tree;
 }
 
-bool TreeBuilder::is_ascii(const char *s, size_t len) const {
+bool TreeBuilder::is_ascii(const char *s, size_t len) {
     for(int i = 0; i < len; i++) {
         if(!(s[i] >= '!' && s[i] <= '~')) {
             return false;

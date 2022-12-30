@@ -20,22 +20,19 @@ class TreeBuilder {
         struct password_score_comparer {
             // if this bool function returns true, it means a is less than b, so b is preferred over a
             bool operator() (QueueEntry &a, QueueEntry &b) {
-                return a.second->score > b.second->score;
+                return a.second->score < b.second->score;
             }
-        } pwcomparer;
-        char* apply_rule(const std::string &rule, const std::string &pw) const;
+        };
+        [[nodiscard]] char* apply_rule(const std::string &rule, const std::string &pw) const;
         const std::vector<std::string> *targets;
         std::set<std::string> rules;
         size_t target_cnt;
-        size_t pw_cnt = 0;
-        size_t rule_cnt = 0;
         rax *pw_tree_processed = nullptr;
         rax *pw_tree_unprocessed = nullptr;
         rax *rule_tree = nullptr;
         std::priority_queue<QueueEntry, std::vector<QueueEntry>, password_score_comparer> pwqueue;
         std::set<QueueEntry> choose_passwords(size_t);
-        bool generates_self(const char*, std::string) const;
-        bool is_ascii(const char*, size_t) const;
+        static bool is_ascii(const char*, size_t) ;
     public:
 
         bool check_intermediate(unsigned int, std::string, const char*) const;
