@@ -33,8 +33,9 @@ int main(int argc, const char **argv) {
     vector<string> *passwords = &pws;
     cout << "Loaded passwords successfully..." << endl;
     vector<string> *dict_words = nullptr;
+    vector<string> dw;
     if (argc == 6) {
-        vector<string> dw = PasswordLoader::load_passwords(argv[5]);
+        dw = PasswordLoader::load_passwords(argv[5]);
         dict_words = &dw;
     }
     TreeBuilder tb(passwords, dict_words, rules, atoi(argv[3]));

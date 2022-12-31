@@ -25,8 +25,9 @@ class TreeBuilder {
         };
         [[nodiscard]] static char* apply_rule(const std::string &rule, const std::string &pw) ;
         const std::vector<std::string> *targets;
+        const std::vector<std::string> *dict_words;
         std::set<std::string> rules;
-        size_t target_cnt;
+        size_t choose_pw_cnt;
         rax *pw_tree_processed = nullptr;
         rax *pw_tree_unprocessed = nullptr;
         rax *rule_tree = nullptr;

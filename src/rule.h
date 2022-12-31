@@ -23,6 +23,6 @@ class Rule {
 };
 
 void initialize_rule_replacements();
-std::string simplify_rule(const std::string& rule, const std::string& password);
+std::string simplify_rule(const std::string& rule);
 
 #endif /* RULE_H */

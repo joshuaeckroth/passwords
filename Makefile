@@ -29,7 +29,7 @@ GENGRAPH_OBJS = $(subst .cc,.o,$(GENGRAPH_SRCS))
 GENTREE_SRCS = src/gentree.cc src/util.cc src/rule_loader.cc src/password_loader.cc src/rule.cc src/password_data.cc src/rule_data.cc src/tree_builder.cc src/analyze_tree.cc
 GENTREE_OBJS = $(subst .cc,.o,$(GENTREE_SRCS)) src/rax.o
 
-all: gengraph
+all: gentree rule_regex_exp
 
 $(HC_ARCHIVE):
 	DEBUG=1 cd external/hashcat && make obj/combined.NATIVE.a
@@ -92,3 +92,6 @@ src/gentree.o: src/gentree.cc src/rule.h src/password_loader.h src/rule_loader.h
 
 gentree: $(GENTREE_OBJS) $(HC_ARCHIVE) 
 	$(CXX) $(CXXFLAGS) $(CFLAGS_NATIVE_PW) $(LFLAGS_NATIVE) $(RADIX_FLAGS) $(NEO4J_FLAGS) -o gentree $(GENTREE_OBJS) $(HC_ARCHIVE)
+
+rule_regex_exp: src/rule_regex_exp.cc src/rule.h src/rule_loader.h src/rule.o src/rule_loader.o $(HC_ARCHIVE) $(RADIX_ROOT)/rax.h src/rax.o
+	$(CXX) $(CXXFLAGS) $(CFLAGS_NATIVE_PW) $(LFLAGS_NATIVE) $(RADIX_FLAGS) src/rule_regex_exp.cc -o rule_regex_exp src/rule.o src/rule_loader.o $(HC_ARCHIVE) src/rax.o
