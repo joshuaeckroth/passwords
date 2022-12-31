@@ -18,7 +18,7 @@ extern "C" {
 #include <rp_cpu.h>
 }
 
-#define SCORE_DECAY_FACTOR 0.99f
+#define SCORE_DECAY_FACTOR 0.999f
 
 using std::vector, std::string, std::cout, std::endl, std::pair, std::set;
 

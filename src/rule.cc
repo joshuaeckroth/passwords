@@ -71,22 +71,36 @@ void initialize_rule_replacements() {
     rule_replacements.push_back(pair<regex, string>("(^| )c t", "$1C"));
     rule_replacements.push_back(pair<regex, string>("(^| )C t", "$1c"));
     rule_replacements.push_back(pair<regex, string>("(^| )([rkKt]) +\\2", "$1"));
-    rule_replacements.push_back(pair<regex, string>("(^| )\\^\\S +\\[", "$1"));
-    rule_replacements.push_back(pair<regex, string>("(^| )\\$\\S +\\]", "$1"));
+    rule_replacements.push_back(pair<regex, string>(R"((^| )\^\S +\[)", "$1$2"));
+    rule_replacements.push_back(pair<regex, string>(R"((^| )\$\S +\])", "$1$2"));
+    rule_replacements.push_back(pair<regex, string>(R"((^| )\^\S r \])", "r"));
+    rule_replacements.push_back(pair<regex, string>(R"((^| )\$\S r \[)", "r"));
+    rule_replacements.push_back(pair<regex, string>(R"((^| )r \] \^(\S) r)", "[ \\$$2"));
     rule_replacements.push_back(pair<regex, string>("(^| )\\{ +\\}", "$1"));
     rule_replacements.push_back(pair<regex, string>("(^| )\\} +\\{", "$1"));
-    rule_replacements.push_back(pair<regex, string>("(^| )\\^\\S +(\\$\\S +|[\\]ulcCt] +)+\\[", "$1$2"));
-    rule_replacements.push_back(pair<regex, string>("(^| )\\$\\S +(\\^\\S +|[\\[ulcCt] +)+\\]", "$1$2"));
-    rule_replacements.push_back(pair<regex, string>("(^| )\\$\\S \\} \\[", "$1"));
-    rule_replacements.push_back(pair<regex, string>("(^| )\\^\\S \\{ \\]", "$1"));
+    rule_replacements.push_back(pair<regex, string>(R"((^| )\^\S +(\$\S +|[\]ulcCt] +)+\[)", "$1$2"));
+    rule_replacements.push_back(pair<regex, string>(R"((^| )\$\S +(\^\S +|[\[ulcCt] +)+\])", "$1$2"));
+    rule_replacements.push_back(pair<regex, string>(R"((^| )\$\S \} \[)", "$1"));
+    rule_replacements.push_back(pair<regex, string>(R"((^| )\^\S \{ \])", "$1"));
     rule_replacements.push_back(pair<regex, string>("(^| )\\} \\[", "$1]"));
     rule_replacements.push_back(pair<regex, string>("(^| )\\{ \\]", "$1["));
-    rule_replacements.push_back(pair<regex, string>("(^| )\\} s(\\S\\S) \\[", "$1$2 ]"));
-    rule_replacements.push_back(pair<regex, string>("(^| )\\{ s(\\S\\S) \\]", "$1$2 ["));
-    rule_replacements.push_back(pair<regex, string>("(^| )\\] \\^(\\S) \\{", "$1] $$2"));
-    rule_replacements.push_back(pair<regex, string>("(^| )\\[ \\$(\\S) \\}", "$1[ ^$2"));
-    rule_replacements.push_back(pair<regex, string>("(^| )\\$(\\S) \\}", "$1^$2"));
-    rule_replacements.push_back(pair<regex, string>("(^| )\\^(\\S) \\{", "$1$$2"));
+    rule_replacements.push_back(pair<regex, string>(R"((^| )\} s(\S\S) \[)", "$1$2 ]"));
+    rule_replacements.push_back(pair<regex, string>(R"((^| )\{ s(\S\S) \])", "$1$2 ["));
+    rule_replacements.push_back(pair<regex, string>(R"((^| )\] \^(\S) \{)", "$1] $$2"));
+    rule_replacements.push_back(pair<regex, string>(R"((^| )\[ \$(\S) \})", "$1[ ^$2"));
+    rule_replacements.push_back(pair<regex, string>(R"((^| )\$(\S) \})", "$1^$2"));
+    rule_replacements.push_back(pair<regex, string>(R"((^| )\^(\S) \{)", "$1$$2"));
+    // canonical ordering of symmetric operations
+    // insert-front comes before insert-back
+    rule_replacements.push_back(pair<regex, string>(R"((^| )(\$\S) (\^\S))", "$1$3 $2"));
+    // chop-right comes before various other options
+    rule_replacements.push_back(pair<regex, string>(R"((^| )\] (\[|s\S\S|\^\S|C|c|t|u|l))", "$1] $2"));
+    // chop-left comes before various other options
+    rule_replacements.push_back(pair<regex, string>(R"((^| )(s\S\S|\$\S|C|c|t|u|l) \[)", "$1[ $2"));
+    // switching a char you just inserted
+    rule_replacements.push_back(pair<regex, string>(R"((^| )(\$\^)(\S) s\3(\S))", "$1$2$4 s$3$4"));
+
+    // cleanup spaces
     rule_replacements.push_back(pair<regex, string>(" +", " "));
     rule_replacements.push_back(pair<regex, string>(" $", ""));
     rule_replacements.push_back(pair<regex, string>("^ ", ""));
