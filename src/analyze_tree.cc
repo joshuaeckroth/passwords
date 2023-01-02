@@ -21,6 +21,8 @@ void AnalyzeTree::analyze() {
     std::fstream rulesout;
     results.open("results/analyze_results.tsv", std::ios::out);
     rulesout.open("results/generated.rule", std::ios::out);
+    // always put a no-op in generated set
+    rulesout << ":\n";
     raxIterator it;
     raxStart(&it, this->rule_tree);
     raxSeek(&it, "^", NULL, 0);
@@ -29,10 +31,15 @@ void AnalyzeTree::analyze() {
         char *k = (char*) malloc((int) it.key_len);
         memcpy(k, it.key, it.key_len);
         if (rdp->hit_count > 0) {
-            cout << "Rule: " << k << endl;
-            cout << "Hit count: " << rdp->hit_count << endl;
+//            cout << "Rule: " << k << endl;
+//            cout << "Hit count: " << rdp->hit_count << endl;
+            size_t pos;
+            string rule(k);
+            while ((pos = rule.find("_SPACE_")) != std::string::npos) {
+                rule.replace(pos, pos+7, " ");
+            }
             results << k << "\t" << rdp->hit_count << "\n";
-            rulesout << k << "\n";
+            rulesout << rule << "\n";
         }
         free(k);
     }

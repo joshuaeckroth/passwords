@@ -23,7 +23,7 @@ class TreeBuilder {
                 return a.second->score < b.second->score;
             }
         };
-        [[nodiscard]] static char* apply_rule(const std::string &rule, const std::string &pw) ;
+        [[nodiscard]] static char* apply_rule(std::string rule, const std::string &pw) ;
         const std::vector<std::string> *targets;
         const std::vector<std::string> *dict_words;
         std::set<std::string> rules;
