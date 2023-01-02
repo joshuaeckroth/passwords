@@ -7,6 +7,7 @@
 #include <utility>
 #include <algorithm>
 #include <set>
+#include <chrono>
 #include "tree_builder.h"
 #include "password_data.h"
 #include "rule_data.h"
@@ -23,6 +24,10 @@ extern "C" {
 #define SCORE_DECAY_FACTOR 0.99f
 
 using std::vector, std::string, std::cout, std::endl, std::pair, std::set, std::replace;
+using std::chrono::high_resolution_clock;
+using std::chrono::duration_cast;
+using std::chrono::duration;
+using std::chrono::milliseconds;
 
 TreeBuilder::TreeBuilder(const vector<string> *target_passwords, const vector<string> *dict_words, set<string> &rules, int target_cnt)
     : rules(std::move(rules)), choose_pw_cnt(target_cnt) {
@@ -152,9 +157,10 @@ void TreeBuilder::build(size_t max_cycles) {
     int rule_abandoned_intermediate_repeat = 0;
     std::fstream statsout;
     statsout.open("results/stats.csv", std::ios::out);
-    statsout << "iteration,processed,unprocessed,hitcount,nothitcount,hitpct,rules_primitives_size,"
+    statsout << "iteration,seconds,processed,unprocessed,hitcount,nothitcount,hitpct,rules_primitives_size,"
              << "rules_composites_size,rule_history_size,rule_abandoned_intermediate\n";
     while (idx <= max_cycles) {
+        auto t1 = high_resolution_clock::now();
         cout << "idx: " << idx << " of " << max_cycles << " processed: " << this->pw_tree_processed->numele << " unprocessed: " << this->pw_tree_unprocessed->numele << endl;
         set<QueueEntry> chosen = this->choose_passwords(pw_choose_n);
         if (chosen.empty()) break;
@@ -262,16 +268,18 @@ void TreeBuilder::build(size_t max_cycles) {
                 raxRemove(this->rule_tree, (unsigned char *) rh.c_str(), rh.size() + 1, (void **) NULL);
             }
         }
+        auto t2 = high_resolution_clock::now();
+        duration<double, std::milli> ms_double = t2 - t1;
         double pct = 100*((double)target_hit_count)/(target_hit_count + not_target_hit_count);
-        cout << "target hit count: " << target_hit_count
+        cout << "seconds: " << ms_double.count()/1000 << " target hit count: " << target_hit_count
              << ", not target hit count: " << not_target_hit_count
              << " = " << pct << "%" << " primitive count " << rules.size() << " rule count "
              << raxSize(this->rule_tree) << " rule history count: " << rule_history_count << endl;
-        statsout << idx << "," << raxSize(this->pw_tree_processed) << ","
+        statsout << idx << "," << ms_double.count()/1000 << "," << raxSize(this->pw_tree_processed) << ","
                  << raxSize(this->pw_tree_unprocessed) << ","
                  << target_hit_count << "," << not_target_hit_count << ","
                  << pct << "," << rules.size() << "," << raxSize(this->rule_tree) << "," << rule_history_count
-                 << rule_abandoned_intermediate_repeat << "\n";
+                 << ", " << rule_abandoned_intermediate_repeat << "\n";
         target_hit_count = not_target_hit_count = 0;
         idx++;
 
