@@ -128,13 +128,13 @@ void initialize_rule_replacements() {
 
 string simplify_rule(const string& rule) {
     string result;
-    for(auto rep : rule_replacements) {
+    for(const auto &rep : rule_replacements) {
         result = regex_replace(rule, get<0>(rep), get<1>(rep));
         if(result != rule) {
             return simplify_rule(result);
         }
     }
-    return result;
+    return rule;
 }
 
 pair<size_t, size_t> count_distinct_rule_kinds(const string& rule) {

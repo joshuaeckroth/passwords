@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <set>
 #include <chrono>
+#include <csignal>
 #include "tree_builder.h"
 #include "password_data.h"
 #include "rule_data.h"
@@ -158,7 +159,7 @@ void TreeBuilder::build(size_t max_cycles) {
     std::fstream statsout;
     statsout.open("results/stats.csv", std::ios::out);
     statsout << "iteration,seconds,processed,unprocessed,hitcount,nothitcount,hitpct,rules_primitives_size,"
-             << "rules_composites_size,rule_history_size,rule_abandoned_intermediate\n";
+             << "rules_composites_size,rule_history_size,rule_abandoned_intermediate,res_mem_size\n";
     while (idx <= max_cycles) {
         auto t1 = high_resolution_clock::now();
         cout << "idx: " << idx << " of " << max_cycles << " processed: " << this->pw_tree_processed->numele << " unprocessed: " << this->pw_tree_unprocessed->numele << endl;
@@ -238,28 +239,24 @@ void TreeBuilder::build(size_t max_cycles) {
                         }
                     }
                     target_hit_count++;
-                    if(new_rule_primitive) {
-                        // if hit target, clear out rule histories since we have a new primitive
-                        new_rule_histories.clear();
-                    }
                 } else {
                     not_target_hit_count++;
                 }
                 free(new_pw);
-//                vector<string> new_rule_histories_removable;
-//                for(const string& rh : new_rule_histories) {
-//                    void *old = nullptr;
-//                    if ((old = raxFind(this->rule_tree, (unsigned char *) rh.c_str(), rh.size() + 1)) != raxNotFound) {
-//                        auto rdp = (RuleData *) old;
-//                        if (idx > 20 && rdp->hit_count < idx / 20) {
-//                            removable_rules.insert(rh);
-//                            new_rule_histories_removable.push_back(rh);
-//                        }
-//                    }
-//                }
-//                for(const string& rh : new_rule_histories_removable) {
-//                    new_rule_histories.erase(rh);
-//                }
+                vector<string> new_rule_histories_removable;
+                for(const string& rh : new_rule_histories) {
+                    void *old = nullptr;
+                    if ((old = raxFind(this->rule_tree, (unsigned char *) rh.c_str(), rh.size() + 1)) != raxNotFound) {
+                        auto rdp = (RuleData *) old;
+                        if (idx > 100 && rdp->hit_count < idx / 100) { // if hasn't hit at least 1% of the time
+                            removable_rules.insert(rh);
+                            new_rule_histories_removable.push_back(rh);
+                        }
+                    }
+                }
+                for(const string& rh : new_rule_histories_removable) {
+                    new_rule_histories.erase(rh);
+                }
                 pdp->rule_histories = new_rule_histories;
                 rule_history_count += new_rule_histories.size();
             }
@@ -270,22 +267,63 @@ void TreeBuilder::build(size_t max_cycles) {
         }
         auto t2 = high_resolution_clock::now();
         duration<double, std::milli> ms_double = t2 - t1;
-        double pct = 100*((double)target_hit_count)/(target_hit_count + not_target_hit_count);
+        std::ifstream stat_stream("/proc/self/stat",std::ios_base::in);
+        string pid, comm, state, ppid, pgrp, session, tty_nr;
+        string tpgid, flags, minflt, cminflt, majflt, cmajflt;
+        string utime, stime, cutime, cstime, priority, nice;
+        string O, itrealvalue, starttime;
+        unsigned long vsize;
+        long rss;
+        stat_stream >> pid >> comm >> state >> ppid >> pgrp >> session >> tty_nr
+                    >> tpgid >> flags >> minflt >> cminflt >> majflt >> cmajflt
+                    >> utime >> stime >> cutime >> cstime >> priority >> nice
+                    >> O >> itrealvalue >> starttime >> vsize >> rss; // don't care about the rest
+        stat_stream.close();
+        long page_size_kb = sysconf(_SC_PAGE_SIZE) / 1024; // for x86-64 is configured to use 2MB pages
+        double vm_usage = vsize / 1024.0;
+        double resident_set = rss * page_size_kb;
+        double hit_pct = 100*((double)target_hit_count)/(target_hit_count + not_target_hit_count);
         cout << "seconds: " << ms_double.count()/1000 << " target hit count: " << target_hit_count
              << ", not target hit count: " << not_target_hit_count
-             << " = " << pct << "%" << " primitive count " << rules.size() << " rule count "
-             << raxSize(this->rule_tree) << " rule history count: " << rule_history_count << endl;
+             << " = " << hit_pct << "%" << " primitive count " << rules.size() << " rule count "
+             << raxSize(this->rule_tree) << " rule history count: " << rule_history_count
+             << " resident set kb: " << resident_set << endl;
         statsout << idx << "," << ms_double.count()/1000 << "," << raxSize(this->pw_tree_processed) << ","
                  << raxSize(this->pw_tree_unprocessed) << ","
                  << target_hit_count << "," << not_target_hit_count << ","
-                 << pct << "," << rules.size() << "," << raxSize(this->rule_tree) << "," << rule_history_count
-                 << ", " << rule_abandoned_intermediate_repeat << "\n";
+                 << hit_pct << "," << rules.size() << "," << raxSize(this->rule_tree) << "," << rule_history_count << ","
+                 << rule_abandoned_intermediate_repeat << "," << resident_set << "\n";
         target_hit_count = not_target_hit_count = 0;
         idx++;
 
         if(idx % 100 == 0) {
             AnalyzeTree at(this->rule_tree);
             at.analyze();
+        }
+
+        if(idx % 10 == 0) {
+            if(pwqueue.size() > (max_cycles-idx)*choose_pw_cnt) {
+                // remove low-scoring pws
+                std::priority_queue<QueueEntry, std::vector<QueueEntry>, password_score_comparer> pwqueue2;
+                for(int i = 0; i < (max_cycles-idx)*choose_pw_cnt; i++) {
+                    pwqueue2.push(pwqueue.top());
+                    pwqueue.pop();
+                }
+                while(!pwqueue.empty()) {
+                    QueueEntry qe = pwqueue.top();
+                    string pw = qe.first;
+                    void *old = nullptr;
+                    if ((old = raxFind(this->pw_tree_unprocessed, (unsigned char *) pw.c_str(), pw.size() + 1)) != raxNotFound) {
+                        auto pdp = (PasswordData *) old;
+                        if(!pdp->is_target) {
+                            raxRemove(this->pw_tree_unprocessed, (unsigned char *) pw.c_str(), pw.size() + 1, (void **) NULL);
+                            delete pdp;
+                        }
+                        pwqueue.pop();
+                    }
+                }
+                pwqueue = pwqueue2;
+            }
         }
     }
     statsout.close();
