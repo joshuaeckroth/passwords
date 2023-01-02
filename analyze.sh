@@ -1,6 +1,6 @@
 #!/bin/bash
 if [ $# -gt 4 ]; then
-    echo "Usage: ./analyze.sh [path/to/hashed] [path/to/dict] [comma separated top-n generated rules] [comma separates paths to additional rule files]"
+    echo "Usage: ./analyze.sh [path/to/hashed] [path/to/dict] [comma separated top-n generated rules] [comma separated paths to additional rule files]"
     echo "Ex: ./analyze.sh hashed/rockyou-test-1mil.md5.txt data/rockyou-train-100k.txt 10,50,64,100,1000 rules/best64.rule,rules/dive.rule"
     exit 1
 fi
