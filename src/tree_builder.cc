@@ -243,27 +243,27 @@ void TreeBuilder::build(size_t max_cycles) {
                     not_target_hit_count++;
                 }
                 free(new_pw);
-                vector<string> new_rule_histories_removable;
-                for(const string& rh : new_rule_histories) {
-                    void *old = nullptr;
-                    if ((old = raxFind(this->rule_tree, (unsigned char *) rh.c_str(), rh.size() + 1)) != raxNotFound) {
-                        auto rdp = (RuleData *) old;
-                        if (idx > 100 && rdp->hit_count < idx / 100) { // if hasn't hit at least 1% of the time
-                            removable_rules.insert(rh);
-                            new_rule_histories_removable.push_back(rh);
-                        }
-                    }
-                }
-                for(const string& rh : new_rule_histories_removable) {
-                    new_rule_histories.erase(rh);
-                }
+//                vector<string> new_rule_histories_removable;
+//                for(const string& rh : new_rule_histories) {
+//                    void *old = nullptr;
+//                    if ((old = raxFind(this->rule_tree, (unsigned char *) rh.c_str(), rh.size() + 1)) != raxNotFound) {
+//                        auto rdp = (RuleData *) old;
+//                        if (idx > 100 && rdp->hit_count < idx / 100) { // if hasn't hit at least 1% of the time
+//                            removable_rules.insert(rh);
+//                            new_rule_histories_removable.push_back(rh);
+//                        }
+//                    }
+//                }
+//                for(const string& rh : new_rule_histories_removable) {
+//                    new_rule_histories.erase(rh);
+//                }
                 pdp->rule_histories = new_rule_histories;
                 rule_history_count += new_rule_histories.size();
             }
-            for(const auto& rh : removable_rules) {
-                this->rules.erase(rh);
-                raxRemove(this->rule_tree, (unsigned char *) rh.c_str(), rh.size() + 1, (void **) NULL);
-            }
+//            for(const auto& rh : removable_rules) {
+//                this->rules.erase(rh);
+//                raxRemove(this->rule_tree, (unsigned char *) rh.c_str(), rh.size() + 1, (void **) NULL);
+//            }
         }
         auto t2 = high_resolution_clock::now();
         duration<double, std::milli> ms_double = t2 - t1;
