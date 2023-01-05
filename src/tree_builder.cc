@@ -7,10 +7,13 @@
 #include <utility>
 #include <algorithm>
 #include <set>
+#include <chrono>
+#include <csignal>
 #include "tree_builder.h"
 #include "password_data.h"
 #include "rule_data.h"
 #include "rule.h"
+#include "analyze_tree.h"
 
 extern "C" {
 #include <rax.h>
@@ -21,7 +24,11 @@ extern "C" {
 
 #define SCORE_DECAY_FACTOR 0.99f
 
-using std::vector, std::string, std::cout, std::endl, std::pair, std::set;
+using std::vector, std::string, std::cout, std::endl, std::pair, std::set, std::replace;
+using std::chrono::high_resolution_clock;
+using std::chrono::duration_cast;
+using std::chrono::duration;
+using std::chrono::milliseconds;
 
 TreeBuilder::TreeBuilder(const vector<string> *target_passwords, const vector<string> *dict_words, set<string> &rules, int target_cnt)
     : rules(std::move(rules)), choose_pw_cnt(target_cnt) {
@@ -89,7 +96,11 @@ TreeBuilder::~TreeBuilder() {
     raxFree(rule_tree);
 }
 
-char* TreeBuilder::apply_rule(const std::string &rule, const std::string &pw) {
+char* TreeBuilder::apply_rule(std::string rule, const std::string &pw) {
+    size_t pos;
+    while ((pos = rule.find("_SPACE_")) != std::string::npos) {
+        rule.replace(pos, pos+7, " ");
+    }
     const size_t pw_size = pw.size();
     char *pw_cstr = (char*) calloc(pw_size+1, sizeof(char));
     strcpy(pw_cstr, pw.c_str());
@@ -114,6 +125,7 @@ bool TreeBuilder::check_intermediate(unsigned int orig_target_idx, string rule, 
             space_indices.push_back(idx);
         }
     }
+    space_indices.push_back(rule_size);
     vector<char*> intermediate_pws;
     intermediate_pws.reserve(rule_size / 2);
     for (size_t &si : space_indices) {
@@ -122,9 +134,14 @@ bool TreeBuilder::check_intermediate(unsigned int orig_target_idx, string rule, 
         intermediate_pws.push_back(new_pw);
     }
     bool flag = true;
-    for (auto & intermediate_pw : intermediate_pws) {
-        if (strcmp(intermediate_pw, pw) == 0) {
+    for(size_t i = 0; flag && i < intermediate_pws.size(); ++i) {
+        if (strcmp(intermediate_pws[i], pw) == 0) {
             flag = false;
+        }
+        for(size_t i2 = 0; flag && i2 < intermediate_pws.size(); ++i2) {
+            if (i != i2 && strcmp(intermediate_pws[i], intermediate_pws[i2]) == 0) {
+                flag = false;
+            }
         }
     }
     for (auto & intermediate_pw : intermediate_pws) {
@@ -141,9 +158,10 @@ void TreeBuilder::build(size_t max_cycles) {
     int rule_abandoned_intermediate_repeat = 0;
     std::fstream statsout;
     statsout.open("results/stats.csv", std::ios::out);
-    statsout << "iteration,processed,unprocessed,hitcount,nothitcount,hitpct,rules_primitives_size,"
-             << "rules_composites_size,rule_history_size,rule_abandoned_intermediate\n";
+    statsout << "iteration,seconds,processed,unprocessed,hitcount,nothitcount,hitpct,rules_primitives_size,"
+             << "rules_composites_size,rule_history_size,rule_abandoned_intermediate,res_mem_size\n";
     while (idx <= max_cycles) {
+        auto t1 = high_resolution_clock::now();
         cout << "idx: " << idx << " of " << max_cycles << " processed: " << this->pw_tree_processed->numele << " unprocessed: " << this->pw_tree_unprocessed->numele << endl;
         set<QueueEntry> chosen = this->choose_passwords(pw_choose_n);
         if (chosen.empty()) break;
@@ -158,7 +176,12 @@ void TreeBuilder::build(size_t max_cycles) {
             set<string> prior_rule_histories;
             prior_rule_histories = orig_pdp->rule_histories;
             PasswordData *pdp = nullptr;
+            set<string> removable_rules;
             for (auto &rule : rules) {
+                bool check_pos = check_rule_position_validity(rule, password);
+                if(!check_pos) {
+                    continue;
+                }
                 char *new_pw = this->apply_rule(rule, password);
                 if (strlen(new_pw) == 0 || !is_ascii(new_pw, strlen(new_pw)) || strcmp(new_pw, password.c_str()) == 0) { // new_pw == pw is uninteresting
                     free(new_pw);
@@ -168,16 +191,15 @@ void TreeBuilder::build(size_t max_cycles) {
                 for (const string &rh : prior_rule_histories) {
                     string rh2 = simplify_rule(rh + " " + rule);
                     bool no_intermediate = check_intermediate(orig_idx_temp, rh2, new_pw);
-                    auto count_openbracket = std::count(rh2.begin(), rh2.end(), '[');
-                    auto count_closebracket = std::count(rh2.begin(), rh2.end(), ']');
-                    if (!rh2.empty() && rh2.size() < 10 && (count_openbracket + count_closebracket) < 4 && no_intermediate) {
+                    pair<size_t, size_t> cnt_kinds = count_distinct_rule_kinds(rh2);
+                    check_pos = check_rule_position_validity(rh2, password);
+                    if (!rh2.empty() && cnt_kinds.first <= 5 && cnt_kinds.second <= 10 && no_intermediate && check_pos) {
                         new_rule_histories.insert(rh2);
                     } else if(!no_intermediate) {
                         rule_abandoned_intermediate_repeat++;
                     }
                 }
                 new_rule_histories.insert(rule);
-                rule_history_count += new_rule_histories.size();
                 void *old = nullptr;
                 bool target = false;
                 // Generated pw already exists as a processed pw
@@ -194,7 +216,6 @@ void TreeBuilder::build(size_t max_cycles) {
                         this->pwqueue.emplace(new_pw, pdp);
                     }
                 }
-                pdp->rule_histories = new_rule_histories;
                 if (pdp->is_target) {
                     target = true;
                 }
@@ -218,27 +239,92 @@ void TreeBuilder::build(size_t max_cycles) {
                         }
                     }
                     target_hit_count++;
-                    if(new_rule_primitive) {
-                        // if hit target, clear out rule histories since we have a new primitive
-                        pdp->rule_histories.clear();
-                    }
                 } else {
                     not_target_hit_count++;
                 }
                 free(new_pw);
+//                vector<string> new_rule_histories_removable;
+//                for(const string& rh : new_rule_histories) {
+//                    void *old = nullptr;
+//                    if ((old = raxFind(this->rule_tree, (unsigned char *) rh.c_str(), rh.size() + 1)) != raxNotFound) {
+//                        auto rdp = (RuleData *) old;
+//                        if (idx > 100 && rdp->hit_count < idx / 100) { // if hasn't hit at least 1% of the time
+//                            removable_rules.insert(rh);
+//                            new_rule_histories_removable.push_back(rh);
+//                        }
+//                    }
+//                }
+//                for(const string& rh : new_rule_histories_removable) {
+//                    new_rule_histories.erase(rh);
+//                }
+                pdp->rule_histories = new_rule_histories;
+                rule_history_count += new_rule_histories.size();
             }
+//            for(const auto& rh : removable_rules) {
+//                this->rules.erase(rh);
+//                raxRemove(this->rule_tree, (unsigned char *) rh.c_str(), rh.size() + 1, (void **) NULL);
+//            }
         }
-        double pct = 100*((double)target_hit_count)/(target_hit_count + not_target_hit_count);
-        cout << "target hit count: " << target_hit_count
+        auto t2 = high_resolution_clock::now();
+        duration<double, std::milli> ms_double = t2 - t1;
+        std::ifstream stat_stream("/proc/self/stat",std::ios_base::in);
+        string pid, comm, state, ppid, pgrp, session, tty_nr;
+        string tpgid, flags, minflt, cminflt, majflt, cmajflt;
+        string utime, stime, cutime, cstime, priority, nice;
+        string O, itrealvalue, starttime;
+        unsigned long vsize;
+        long rss;
+        stat_stream >> pid >> comm >> state >> ppid >> pgrp >> session >> tty_nr
+                    >> tpgid >> flags >> minflt >> cminflt >> majflt >> cmajflt
+                    >> utime >> stime >> cutime >> cstime >> priority >> nice
+                    >> O >> itrealvalue >> starttime >> vsize >> rss; // don't care about the rest
+        stat_stream.close();
+        long page_size_kb = sysconf(_SC_PAGE_SIZE) / 1024; // for x86-64 is configured to use 2MB pages
+        double vm_usage = vsize / 1024.0;
+        double resident_set = rss * page_size_kb;
+        double hit_pct = 100*((double)target_hit_count)/(target_hit_count + not_target_hit_count);
+        cout << "seconds: " << ms_double.count()/1000 << " target hit count: " << target_hit_count
              << ", not target hit count: " << not_target_hit_count
-             << " = " << pct << "%" << " primitive count " << rules.size() << " rule count "
-             << raxSize(this->rule_tree) << " rule history count: " << rule_history_count << endl;
-        statsout << idx << "," << raxSize(this->pw_tree_processed) << ","
+             << " = " << hit_pct << "%" << " primitive count " << rules.size() << " rule count "
+             << raxSize(this->rule_tree) << " rule history count: " << rule_history_count
+             << " resident set kb: " << resident_set << endl;
+        statsout << idx << "," << ms_double.count()/1000 << "," << raxSize(this->pw_tree_processed) << ","
                  << raxSize(this->pw_tree_unprocessed) << ","
                  << target_hit_count << "," << not_target_hit_count << ","
-                 << pct << "," << rules.size() << "," << raxSize(this->rule_tree) << "," << rule_history_count << "\n";
+                 << hit_pct << "," << rules.size() << "," << raxSize(this->rule_tree) << "," << rule_history_count << ","
+                 << rule_abandoned_intermediate_repeat << "," << resident_set << "\n";
         target_hit_count = not_target_hit_count = 0;
         idx++;
+
+        if(idx % 100 == 0) {
+            AnalyzeTree at(this->rule_tree);
+            at.analyze();
+        }
+
+        if(idx % 10 == 0) {
+            if(pwqueue.size() > (max_cycles-idx)*choose_pw_cnt) {
+                // remove low-scoring pws
+                std::priority_queue<QueueEntry, std::vector<QueueEntry>, password_score_comparer> pwqueue2;
+                for(int i = 0; i < (max_cycles-idx)*choose_pw_cnt; i++) {
+                    pwqueue2.push(pwqueue.top());
+                    pwqueue.pop();
+                }
+                while(!pwqueue.empty()) {
+                    QueueEntry qe = pwqueue.top();
+                    string pw = qe.first;
+                    void *old = nullptr;
+                    if ((old = raxFind(this->pw_tree_unprocessed, (unsigned char *) pw.c_str(), pw.size() + 1)) != raxNotFound) {
+                        auto pdp = (PasswordData *) old;
+                        if(!pdp->is_target) {
+                            raxRemove(this->pw_tree_unprocessed, (unsigned char *) pw.c_str(), pw.size() + 1, (void **) NULL);
+                            delete pdp;
+                        }
+                        pwqueue.pop();
+                    }
+                }
+                pwqueue = pwqueue2;
+            }
+        }
     }
     statsout.close();
 }
@@ -267,7 +353,7 @@ rax* TreeBuilder::get_rule_tree() {
 
 bool TreeBuilder::is_ascii(const char *s, size_t len) {
     for(int i = 0; i < len; i++) {
-        if(!(s[i] >= '!' && s[i] <= '~')) {
+        if(!(s[i] >= '!' && s[i] <= '~') && s[i] != ' ') {
             return false;
         }
     }

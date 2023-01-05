@@ -3,6 +3,7 @@
 
 #include <string>
 #include <iostream>
+#include <utility>
 
 class Rule {
     private:
@@ -24,5 +25,7 @@ class Rule {
 
 void initialize_rule_replacements();
 std::string simplify_rule(const std::string& rule);
+std::pair<size_t, size_t> count_distinct_rule_kinds(const std::string& rule);
+bool check_rule_position_validity(const std::string& rule, const std::string& password);
 
 #endif /* RULE_H */
