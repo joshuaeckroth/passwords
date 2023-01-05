@@ -15,7 +15,7 @@ hashed=$1
 words=$2
 for i in "${top_ns[@]}"
 do
-    head -n $i $RDIR/analyze_results_sorted.tsv | cut -f1 > $RDIR/results_top_$i.rule
+    tail -n $i $RDIR/analyze_results_sorted.tsv | cut -f1 > $RDIR/results_top_$i.rule
     rm -rf ~/.local/share/hashcat
     rec_pct=$(hashcat -m 0 -a 0 -r $RDIR/results_top_$i.rule $hashed $words | grep 'Recovered\.' | grep -Eo '[0-9]+\.[0-9]+')
     echo "For top $i cracked $rec_pct%"
