@@ -1,24 +1,4 @@
 
-Results (time measurements on Josh's desktop):
-
-- Cracking rockyou-test-1mil.md5.txt using input rockyou-train-100k.txt
-  - best64.rule: 0:25, 31.70%, 64 rules
-  - dive.rule: 1:08, 83.84%, 99092 rules
-  - oneruletorulethemall.rule: 1:02, 86.80%, 52014 rules
-  - ours w/ english dictionary: 0:49, 64.04%, 21597 rules
-
-- Cracking pwned-passwords-sha1-ordered-by-count-v8.top1mil.txt using input rockyou-train-100k.txt
-  - no rules: 0:10, 9.82%, 0 rules
-  - best64.rule: 0:33, 41.52%, 64 rules
-  - dive.rule: 1:00, 82.98%, 99092 rules
-  - oneruletorulethemall.rule: 1:04, 84.68%, 52014 rules
-  - ours w/ english dictionary: 0:55, 70.45%, 36198 rules
-
-- Cracking pwned-passwords-sha1-ordered-by-count-v8.top100mil.txt using input rockyou-train-100k.txt
-  - hashcat's generated.rule:
-  - oneruletorulethemall.rule: 49:58, 30.87%, 52014 rules
-  - ours w/ english dictionary: 24:25, 14.56%, 36198 rules
-
 
 neo4j:
 

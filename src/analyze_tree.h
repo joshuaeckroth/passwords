@@ -5,13 +5,7 @@ extern "C" {
 #include <rax.h>
 }
 
-// Analyzes a rule tree
-class AnalyzeTree {
-    private:
-        rax *rule_tree;
-    public:
-        AnalyzeTree(rax*);
-        void analyze();
-};
+void analyze_rules(rax*);
+void analyze_passwords(rax*);
 
 #endif /* ANALYZE_TREE */

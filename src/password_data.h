@@ -5,6 +5,7 @@
 #include <string>
 
 struct PasswordData {
+    int hit_count;
     float score;
     bool is_target;
     unsigned int orig_idx;

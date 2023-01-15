@@ -81,12 +81,20 @@ void initialize_rule_replacements() {
     rule_replacements.push_back(pair<regex, string>("(^| )([rkKt]) \\2", "$1"));
     rule_replacements.push_back(pair<regex, string>(R"((^| )[\^\$](\S) @\2)", "$1"));
     rule_replacements.push_back(pair<regex, string>(R"((^| )\^\S \[)", "$1$2"));
+    rule_replacements.push_back(pair<regex, string>(R"((^| )\^(.) \] \^(.))", "$1] ^$2 ^$3"));
+    rule_replacements.push_back(pair<regex, string>(R"((^| )\$(.) \[ \$(.))", "$1[ \\$$2 \\$$3"));
     rule_replacements.push_back(pair<regex, string>(R"((^| )\$\S \])", "$1$2"));
     rule_replacements.push_back(pair<regex, string>(R"((^| )\^\S r \])", "$1r"));
     rule_replacements.push_back(pair<regex, string>(R"((^| )\$\S r \[)", "$1r"));
     rule_replacements.push_back(pair<regex, string>(R"((^| )r \] \^(\S) r)", "$1[ \\$$2"));
     rule_replacements.push_back(pair<regex, string>(R"((^| )r \] r)", "$1["));
     rule_replacements.push_back(pair<regex, string>(R"((^| )r \[ r)", "$1]"));
+    rule_replacements.push_back(pair<regex, string>(R"((^| )r \[ \] r)", "$1] ["));
+    rule_replacements.push_back(pair<regex, string>(R"((^| )r \] \[ r)", "$1] ["));
+    rule_replacements.push_back(pair<regex, string>(R"((^| )\] \[ r)", "$1r ] ["));
+    rule_replacements.push_back(pair<regex, string>(R"((^| )r \^(.) r)", "$1\\$$2"));
+    rule_replacements.push_back(pair<regex, string>(R"((^| )r \$(.) r)", "$1^$2"));
+    rule_replacements.push_back(pair<regex, string>(R"((^| )\[ \])", "$1] [")); // right always before left bracket
     rule_replacements.push_back(pair<regex, string>("(^| )\\{ +\\}", "$1"));
     rule_replacements.push_back(pair<regex, string>("(^| )\\} +\\{", "$1"));
     rule_replacements.push_back(pair<regex, string>(R"((^| )\^\S +(\$\S +|[\]ulcCt] +)+\[)", "$1$2"));

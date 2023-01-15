@@ -46,7 +46,10 @@ TreeBuilder::TreeBuilder(const vector<string> *target_passwords, const vector<st
     for(size_t idx = 0; idx < target_passwords->size(); idx++) {
         string password = target_passwords->at(idx);
         auto *pdp = new PasswordData(true, (dict_words_size + pw_cnt) - idx, idx);
-        raxInsert(this->pw_tree_unprocessed, (unsigned char*) password.c_str(), password.size()+1, (void*) pdp, NULL);
+        if(0 == raxTryInsert(this->pw_tree_unprocessed, (unsigned char*) password.c_str(), password.size()+1, (void*) pdp, NULL)) {
+            // this password has already been inserted
+            continue;
+        }
         this->pwqueue.emplace(password, pdp);
     }
     if (dict_words != nullptr) {
@@ -172,6 +175,9 @@ void TreeBuilder::build(size_t max_cycles) {
             unsigned int orig_idx_temp = queue_entry.second->orig_idx;
             PasswordData *orig_pdp = nullptr;
             raxRemove(this->pw_tree_unprocessed, (unsigned char*) password.c_str(), password.size()+1, (void**) &orig_pdp);
+            if(orig_pdp == nullptr) {
+                cout << "Error, password " << password << " has no data in pw_tree_unprocessed or was not found." << endl;
+            }
             raxInsert(this->pw_tree_processed, (unsigned char*) password.c_str(), password.size()+1, (void*) orig_pdp, NULL);
             set<string> prior_rule_histories;
             prior_rule_histories = orig_pdp->rule_histories;
@@ -218,6 +224,7 @@ void TreeBuilder::build(size_t max_cycles) {
                 }
                 if (pdp->is_target) {
                     target = true;
+                    pdp->hit_count++;
                 }
                 // try to insert new composite rule
                 if (target) {
@@ -296,9 +303,9 @@ void TreeBuilder::build(size_t max_cycles) {
         target_hit_count = not_target_hit_count = 0;
         idx++;
 
-        if(idx % 100 == 0) {
-            AnalyzeTree at(this->rule_tree);
-            at.analyze();
+        if(idx % 10 == 0) {
+            analyze_rules(this->rule_tree);
+            analyze_passwords(this->pw_tree_processed);
         }
 
         if(idx % 10 == 0) {
@@ -353,7 +360,7 @@ rax* TreeBuilder::get_rule_tree() {
 
 bool TreeBuilder::is_ascii(const char *s, size_t len) {
     for(int i = 0; i < len; i++) {
-        if(!(s[i] >= '!' && s[i] <= '~') && s[i] != ' ') {
+        if(!(s[i] >= ' ' && s[i] <= '~')) {
             return false;
         }
     }
