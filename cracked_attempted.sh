@@ -55,7 +55,8 @@ do
     cat $TOP_N_STATUS | grep -Eo 'Recovered.+\s([0-9]+)' | awk '{print $2}' > $TOP_N_RECOVERED
     cat $TOP_N_STATUS | grep -Eo 'Progress.+\s([0-9]+)' | awk '{print $2}' > $TOP_N_PROGRESS
     ## cat $TOP_N_STATUS | grep Started > $TOP_N_STARTED
-    paste $TOP_N_RECOVERED $TOP_N_PROGRESS > $TOP_N_DATA
+    echo -e "0\t0" > $TOP_N_DATA
+    paste $TOP_N_RECOVERED $TOP_N_PROGRESS >> $TOP_N_DATA
     TOP_N_PATHS+="${TOP_N_DATA},"
 done
 
@@ -80,7 +81,8 @@ if [ $# -gt 5 ]; then
         cat $ADDITIONAL_STATUS | grep -Eo 'Recovered.+\s([0-9]+)' | awk '{print $2}' > $ADDITIONAL_RECOVERED
         cat $ADDITIONAL_STATUS | grep -Eo 'Progress.+\s([0-9]+)' | awk '{print $2}' > $ADDITIONAL_PROGRESS
         ## cat $ADDITIONAL_STATUS | grep Started > $ADDITIONAL_STARTED
-        paste $ADDITIONAL_RECOVERED $ADDITIONAL_PROGRESS > $ADDITIONAL_DATA
+        echo -e "0\t0" > $ADDITIONAL_DATA
+        paste $ADDITIONAL_RECOVERED $ADDITIONAL_PROGRESS >> $ADDITIONAL_DATA
         COMPARISON_PATHS+="${ADDITIONAL_DATA},"
     done
     COMPARISON_PATHS=$(sed 's/.\{1\}$//' <<< $COMPARISON_PATHS)

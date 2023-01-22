@@ -32,7 +32,7 @@ def main():
     ax.legend()
     ax.set_ylabel("# cracked")
     ax.set_xlabel("# attempted")
-    ax.set_xscale("log")
+    #ax.set_xscale("log")
     ax.set_title("cracked / attempted by sets of rules")
     plt.savefig("cracked_attempted_plot.png", dpi=300)
 
