@@ -87,5 +87,6 @@ if [ $# -gt 5 ]; then
     done
     COMPARISON_PATHS=$(sed 's/.\{1\}$//' <<< $COMPARISON_PATHS)
 fi
-
-$PYTHON cracked_attempted.py $TOP_N_PATHS $COMPARISON_PATHS
+HASHED_FNAME=$(echo $HASHED | rev | cut -d '/' -f 1 | rev)
+WORDS_FNAME=$(echo $WORDS | rev | cut -d '/' -f 1 | rev)
+$PYTHON cracked_attempted.py $TOP_N_PATHS $COMPARISON_PATHS $HASHED_FNAME $WORDS_FNAME
