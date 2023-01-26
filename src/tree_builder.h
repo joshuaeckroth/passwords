@@ -28,6 +28,7 @@ class TreeBuilder {
         const std::vector<std::string> *dict_words;
         std::set<std::string> rules;
         size_t choose_pw_cnt;
+        float score_decay_factor;
         rax *pw_tree_processed = nullptr;
         rax *pw_tree_unprocessed = nullptr;
         rax *rule_tree = nullptr;
@@ -37,7 +38,7 @@ class TreeBuilder {
     public:
 
         bool check_intermediate(unsigned int, std::string, const char*) const;
-        TreeBuilder(const std::vector<std::string> *target_passwords, const std::vector<std::string> *dict_words, std::set<std::string> &rules, int target_cnt);
+        TreeBuilder(const std::vector<std::string> *target_passwords, const std::vector<std::string> *dict_words, std::set<std::string> &rules, int target_cnt, float score_deay_factor);
         ~TreeBuilder();
         void build(size_t);
         rax* get_password_tree_processed();

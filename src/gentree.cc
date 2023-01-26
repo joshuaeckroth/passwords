@@ -19,8 +19,8 @@ using std::set, std::vector, std::string, std::cout, std::endl;
 
 int main(int argc, const char **argv) {
     cout << "gentree starting..." << endl;
-    if (argc < 5 || argc > 6) {
-        fprintf(stderr, "Usage: %s <password list> <rule list> <pwd count per cycle> <num cycles> <optional: dictionary>\n", argv[0]);
+    if (argc != 6 && argc != 7) {
+        fprintf(stderr, "Usage: %s <password list> <rule list> <pwd count per cycle> <num cycles> <score decay factor> <optional: dictionary>\n", argv[0]);
         return -1;
     }
     vector<string> rules_vec = RuleLoader::load_rules<string>(argv[2]);
@@ -34,11 +34,11 @@ int main(int argc, const char **argv) {
     cout << "Loaded passwords successfully..." << endl;
     vector<string> *dict_words = nullptr;
     vector<string> dw;
-    if (argc == 6) {
-        dw = PasswordLoader::load_passwords(argv[5]);
+    if (argc == 7) {
+        dw = PasswordLoader::load_passwords(argv[6]);
         dict_words = &dw;
     }
-    TreeBuilder tb(passwords, dict_words, rules, atoi(argv[3]));
+    TreeBuilder tb(passwords, dict_words, rules, atoi(argv[3]), atof(argv[5]));
     //cout << tb.check_intermediate(0, "$1 $2 $3 { }", "password123") << endl;
     tb.build(atoi(argv[4]));
     rax *pw_tree_processed = tb.get_password_tree_processed();
