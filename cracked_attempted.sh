@@ -42,23 +42,21 @@ echo "Running hashcat with generated rulefiles"
 
 for i in "${TOP_NS[@]}"
 do
+    echo "Running hashcat for top" $i "generated rules"
     TOP_N=$RDIR/results_top_$i.rule
     TOP_N_STATUS=$RDIR/hc_status_top_$i.txt
     TOP_N_RECOVERED=$RDIR/hc_status_recovered_top_$i.txt
     TOP_N_PROGRESS=$RDIR/hc_status_progress_top_$i.txt
     TOP_N_STARTED=$RDIR/hc_status_started_top_$i.txt
     TOP_N_DATA=$RDIR/hc_data_generated_top_$i.tsv
-        if [ ! -e $TOP_N_STATUS ]
-        then
-        echo "Running hashcat for top" $i "generated rules"
-        tail -n $i $RESULTS_SORTED | cut -f1 > $TOP_N
-        rm -rf $POTFILE_DIR
-        hashcat -O --status --status-timer=$HC_REPORT_INTERVAL -d $HC_DEVICE -m $HC_HASH -a 0 -r $TOP_N $HASHED $WORDS data/english-words-by-frequency/wikipedia_words.trimmed.100k.txt | grep '\(Recovered\.\.\.\|Progress\.\.\.\)' > $TOP_N_STATUS
-        cat $TOP_N_STATUS | grep -Eo 'Recovered.*: ([0-9]+)' | awk '{print $2}' > $TOP_N_RECOVERED
-        cat $TOP_N_STATUS | grep -Eo 'Progress.*: ([0-9]+)' | awk '{print $2}' > $TOP_N_PROGRESS
-        ## cat $TOP_N_STATUS | grep Started > $TOP_N_STARTED
-        paste $TOP_N_RECOVERED $TOP_N_PROGRESS > $TOP_N_DATA
-    fi
+    tail -n $i $RESULTS_SORTED | cut -f1 > $TOP_N
+    rm -rf $POTFILE_DIR
+    hashcat --status --status-timer=$HC_REPORT_INTERVAL -d $HC_DEVICE -m $HC_HASH -a 0 -r $TOP_N $HASHED $WORDS | grep '\(Recovered\.\.\.\|Progress\.\.\.\|Time\.Estimated\|Time\.Started\)' > $TOP_N_STATUS
+    cat $TOP_N_STATUS | grep -Eo 'Recovered.+\s([0-9]+)' | awk '{print $2}' > $TOP_N_RECOVERED
+    cat $TOP_N_STATUS | grep -Eo 'Progress.+\s([0-9]+)' | awk '{print $2}' > $TOP_N_PROGRESS
+    ## cat $TOP_N_STATUS | grep Started > $TOP_N_STARTED
+    echo -e "0\t0" > $TOP_N_DATA
+    paste $TOP_N_RECOVERED $TOP_N_PROGRESS >> $TOP_N_DATA
     TOP_N_PATHS+="${TOP_N_DATA},"
 done
 
@@ -70,7 +68,7 @@ if [ $# -gt 5 ]; then
     COMP_RULEFILES=($(awk -F',' '{for (i=1; i<=NF; i++) print $i}' <<< "$6"))
     for RULEFILE in "${COMP_RULEFILES[@]}"
     do
-        # use `basename`?
+        echo "Running hashcat for additional rulefile" $RULEFILE
         RULEFILE_NAME=$(echo $RULEFILE | rev | cut -d '/' -f 1 | rev | sed 's/\.[^.]*$//')
         # echo "RULEFILE_NAME is: " $RULEFILE_NAME
         ADDITIONAL_STATUS=$RDIR/hc_status_$RULEFILE_NAME.txt
@@ -78,19 +76,17 @@ if [ $# -gt 5 ]; then
         ADDITIONAL_PROGRESS=$RDIR/hc_status_progress_$RULEFILE_NAME.txt
         ADDITIONAL_STARTED=$RDIR/hc_status_started_$RULEFILE_NAME.txt
         ADDITIONAL_DATA=$RDIR/hc_data_$RULEFILE_NAME.tsv
-        if [ ! -e $ADDITIONAL_STATUS ]
-        then
-            echo "Running hashcat for additional rulefile" $RULEFILE
-            rm -rf $POTFILE_DIR
-            hashcat -O --status --status-timer=$HC_REPORT_INTERVAL -d $HC_DEVICE -m $HC_HASH -a 0 -r $RULEFILE $HASHED $WORDS data/english-words-by-frequency/wikipedia_words.trimmed.100k.txt | grep '\(Recovered\.\.\.\|Progress\.\.\.\)' > $ADDITIONAL_STATUS
-            cat $ADDITIONAL_STATUS | grep -Eo 'Recovered.*: ([0-9]+)' | awk '{print $2}' > $ADDITIONAL_RECOVERED
-            cat $ADDITIONAL_STATUS | grep -Eo 'Progress.*: ([0-9]+)' | awk '{print $2}' > $ADDITIONAL_PROGRESS
-            ## cat $ADDITIONAL_STATUS | grep Started > $ADDITIONAL_STARTED
-            paste $ADDITIONAL_RECOVERED $ADDITIONAL_PROGRESS > $ADDITIONAL_DATA
-        fi
+        rm -rf $POTFILE_DIR
+        hashcat --status --status-timer=$HC_REPORT_INTERVAL -d $HC_DEVICE -m $HC_HASH -a 0 -r $RULEFILE $HASHED $WORDS | grep '\(Recovered\.\.\.\|Progress\.\.\.\|Time\.Estimated\|Time\.Started\)' > $ADDITIONAL_STATUS
+        cat $ADDITIONAL_STATUS | grep -Eo 'Recovered.+\s([0-9]+)' | awk '{print $2}' > $ADDITIONAL_RECOVERED
+        cat $ADDITIONAL_STATUS | grep -Eo 'Progress.+\s([0-9]+)' | awk '{print $2}' > $ADDITIONAL_PROGRESS
+        ## cat $ADDITIONAL_STATUS | grep Started > $ADDITIONAL_STARTED
+        echo -e "0\t0" > $ADDITIONAL_DATA
+        paste $ADDITIONAL_RECOVERED $ADDITIONAL_PROGRESS >> $ADDITIONAL_DATA
         COMPARISON_PATHS+="${ADDITIONAL_DATA},"
     done
     COMPARISON_PATHS=$(sed 's/.\{1\}$//' <<< $COMPARISON_PATHS)
 fi
-
-$PYTHON cracked_attempted.py $TOP_N_PATHS $COMPARISON_PATHS
+HASHED_FNAME=$(echo $HASHED | rev | cut -d '/' -f 1 | rev)
+WORDS_FNAME=$(echo $WORDS | rev | cut -d '/' -f 1 | rev)
+$PYTHON cracked_attempted.py $TOP_N_PATHS $COMPARISON_PATHS $HASHED_FNAME $WORDS_FNAME
