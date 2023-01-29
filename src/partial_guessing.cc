@@ -31,14 +31,19 @@ PGV to_probability_vec(const PGM &m, bool sort) {
     return m_elements;
 }
 
-void print_dist(const PGM &m) {
-    PGV m_elements = to_probability_vec(m);
-    for (const auto &element : m_elements) {
+void print_pgd(const PGV &v) {
+    for (const auto &element : v) {
         cout << "Hash: " << element.hash
-            << ", Index: " << element.index
-            << ", Count: " << element.occur_cnt
-            << ", Probability: " << element.probability << endl;
+            << "\n - Index: " << element.index
+            << "\n - Count: " << element.occur_cnt
+            << "\n - Probability: " << element.probability
+            << "\n - Strength: " << element.strength << endl;
     }
+}
+
+void print_pgd(const PGM &m) {
+    PGV m_elements = to_probability_vec(m);
+    print_pgd(m_elements);
 }
 
 PGM read_distribution(string path) {
@@ -80,13 +85,14 @@ PGM read_distribution(string path) {
         }
         idx++;
     }
+    // double cumulative_probability = 0.0;
     for (auto &element : dist) {
         double p = (double) element.second.occur_cnt / (double) sample_space_size;
-        cout << "p: " << p << endl;
+        // cout << "p: " << p << endl;
         element.second.probability = p;
     }
     empty_stack(idx);
-    // print_dist(dist);
+    // print_pgd(dist);
     return dist;
 }
 
@@ -136,7 +142,7 @@ void generate_partial_guessing_strengths(PGV &probabilities) {
     }
 }
 
-
-
-
-
+double strength_unseen(const PGV &probabilities) {
+    const size_t N = probabilities.size();
+    return std::log2(N + 1);
+}

@@ -18,3 +18,5 @@ typedef std::vector<PartialGuessData> PGV;
 PGM read_distribution(std::string path);
 PGV to_probability_vec(const PGM &m, bool sort = true);
 void generate_partial_guessing_strengths(PGV&);
+void print_pgd(const PGV &v);
+double strength_unseen(const PGV&);

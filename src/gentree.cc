@@ -78,6 +78,9 @@ int main(int argc, const char **argv) {
     if (pw_distribution_fp != "") {
         cout << "Reading password distributions..." << endl;
         distribution = read_distribution(pw_distribution_fp);
+        PGV prob_vec = to_probability_vec(distribution);
+        generate_partial_guessing_strengths(prob_vec);
+        print_pgd(prob_vec);
     }
     TreeBuilder tb(passwords, dict_words, rules, count_per_cycle, score_decay_factor);
     tb.build(num_cycles);
