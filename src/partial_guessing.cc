@@ -13,39 +13,45 @@
 #include <algorithm>
 #include "partial_guessing.h"
 
-using std::cout, std::endl, std::string;
+using std::cout, std::endl, std::string, std::vector;
 
-// first is i_sub_x, index is a float because all events in a seq x_sub_i...x_sub_i+j
-// of equiprobable events are given the index (i + j) / 2
-typedef std::pair<float, size_t> idx_cnt;
+PartialGuessData::PartialGuessData(string hash, double index, size_t occur_cnt, double probability, double strength)
+    : hash(hash), index(index), occur_cnt(occur_cnt), probability(probability) {}
 
-void print_dist(std::unordered_map<string, idx_cnt> m) {
-    std::vector<std::pair<string, idx_cnt>> m_elements;
+PGV to_probability_vec(const PGM &m, bool sort) {
+    PGV m_elements;
     for (const auto &element : m) {
-        m_elements.push_back({element.first, element.second});
+        m_elements.push_back(element.second);
     }
-    std::sort(m_elements.begin(), m_elements.end(), [](const auto &a, const auto &b) {
-        return a.second.first < b.second.first;
-    });
+    if (sort) {
+        std::sort(m_elements.begin(), m_elements.end(), [](const auto &a, const auto &b) {
+            return a.index < b.index;
+        });
+    }
+    return m_elements;
+}
+
+void print_dist(const PGM &m) {
+    PGV m_elements = to_probability_vec(m);
     for (const auto &element : m_elements) {
-        cout << "Hash: " << element.first
-            << ", Index: " << element.second.first
-            << ", Count: " << element.second.second << endl;
+        cout << "Hash: " << element.hash
+            << ", Index: " << element.index
+            << ", Count: " << element.occur_cnt
+            << ", Probability: " << element.probability << endl;
     }
 }
 
-std::unordered_map<string, idx_cnt> read_distribution(string path) {
-    std::unordered_map<string, idx_cnt> dist;
-    std::stack<std::pair<string, size_t>> dup_stack;
+PGM read_distribution(string path) {
+    PGM dist;
+    std::stack<PartialGuessData> dup_stack;
     auto empty_stack = [&](size_t i) {
         size_t stack_size = dup_stack.size();
         size_t j = i - stack_size + 1;
-        float idx = (stack_size == 1) ? i : (i + j) / 2.0f;
+        double idx = (stack_size == 1) ? i : (i + j) / 2.0;
         while (!dup_stack.empty()) {
-            auto top = dup_stack.top();
-            string hash = top.first;
-            size_t count = top.second;
-            dist[hash] = {idx, count};
+            PartialGuessData top = dup_stack.top();
+            top.index = idx;
+            dist.insert({top.hash, top});
             dup_stack.pop();
         }
     };
@@ -53,6 +59,7 @@ std::unordered_map<string, idx_cnt> read_distribution(string path) {
     std::ifstream in_f(path);
     string line;
     size_t idx = 0;
+    size_t sample_space_size;
     while (std::getline(in_f, line)) {
         std::transform(line.begin(), line.end(), line.begin(), ::tolower);
         string token;
@@ -61,19 +68,75 @@ std::unordered_map<string, idx_cnt> read_distribution(string path) {
         const string hash = token;
         std::getline(token_stream, token, delim);
         const size_t count = atoi(token.c_str());
+        sample_space_size += count;
         if (dup_stack.empty()) {
-            dup_stack.push({hash, count});
+            dup_stack.push({hash, 0.0, count, 0.0, 0.0});
         } else {
             auto top = dup_stack.top();
-            if (top.second != count) {
+            if (top.occur_cnt != count) {
                 empty_stack(idx - 1);
             }
-            dup_stack.push({hash, count});
+            dup_stack.push({hash, 0.0, count, 0.0, 0.0});
         }
         idx++;
     }
+    for (auto &element : dist) {
+        double p = (double) element.second.occur_cnt / (double) sample_space_size;
+        cout << "p: " << p << endl;
+        element.second.probability = p;
+    }
     empty_stack(idx);
-    print_dist(dist);
+    // print_dist(dist);
     return dist;
 }
+
+/*
+ * the definition of G ̃α requires several parts. The α-work-factor
+ * μα reflects the required size μ of a dictionary needed to have a
+ * cumulative probability α of success in an optimal guessing attack
+ */
+
+size_t alpha_work_factor(const PGV &probabilities, double alpha) {
+    // indexes probabilities and will return as min size when cumulative_probability exceeds alpha
+    size_t idx = 0;
+    double cumulative_probability = 0.0;
+    while (cumulative_probability < alpha) {
+        cumulative_probability += probabilities[idx].probability;
+        idx++;
+    }
+    return idx;
+}
+
+double alpha_guesswork(const PGV &probabilities, double alpha, bool uniform_dist = false) {
+    if (uniform_dist) {
+        const size_t N = probabilities.size();
+        return std::log2(N);
+    } else {
+        const size_t a_ceil = std::ceil(alpha);
+        size_t awf = alpha_work_factor(probabilities, alpha);
+        double summation = 0.0;
+        for (size_t idx = 1; idx <= awf; idx++) {
+            summation += probabilities[idx-1].probability * idx;
+        }
+        // avg guesses per acc
+        double agw = ((1 - a_ceil) * awf) + summation;
+        agw = std::log2(((2.0 * agw) / a_ceil) - 1) - std::log2(2 - a_ceil);
+        return agw;
+    }
+}
+
+void generate_partial_guessing_strengths(PGV &probabilities) {
+    const size_t N = probabilities.size();
+    double cumulative_prob = 0.0;
+    for (size_t idx = 0; idx < N; idx++) {
+        const double alpha = cumulative_prob;
+        const double strength = alpha_guesswork(probabilities, alpha) / alpha;
+        probabilities[idx].strength = strength;
+        cumulative_prob += probabilities[idx].probability;
+    }
+}
+
+
+
+
 

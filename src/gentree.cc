@@ -74,7 +74,7 @@ int main(int argc, const char **argv) {
         dw = PasswordLoader::load_passwords(dictionary.c_str());
         dict_words = &dw;
     }
-    std::unordered_map<string, std::pair<float, size_t>> distribution;
+    std::unordered_map<string, PartialGuessData> distribution;
     if (pw_distribution_fp != "") {
         cout << "Reading password distributions..." << endl;
         distribution = read_distribution(pw_distribution_fp);
