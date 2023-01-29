@@ -1,6 +1,7 @@
 CXXFLAGS += -std=c++20 -O3 -g
 CFLAGS_NATIVE_PW := $(CFLAGS)
 CFLAGS_NATIVE_PW += -DWITH_HWMON
+CFLAGS_NATIVE_PW += -I/opt/homebrew/Cellar/boost/1.76.0/include -L/opt/homebrew/Cellar/boost/1.76.0/lib -lboost_regex
 
 ifeq ($(UNAME),Darwin)
 ifeq ($(shell test $(DARWIN_VERSION) -le 15; echo $$?), 0)
@@ -26,7 +27,7 @@ HC_ARCHIVE = external/hashcat/obj/combined.NATIVE.a
 GENGRAPH_SRCS = src/rule.cc src/util.cc src/rule_loader.cc src/password_loader.cc src/password_node.cc src/graph.cc src/password_node_hash.cc src/graph_builder.cc src/graph_db_writer.cc src/gengraph.cc
 GENGRAPH_OBJS = $(subst .cc,.o,$(GENGRAPH_SRCS))
 
-GENTREE_SRCS = src/gentree.cc src/util.cc src/rule_loader.cc src/password_loader.cc src/rule.cc src/password_data.cc src/rule_data.cc src/tree_builder.cc src/analyze_tree.cc
+GENTREE_SRCS = src/gentree.cc src/util.cc src/rule_loader.cc src/password_loader.cc src/rule.cc src/password_data.cc src/rule_data.cc src/tree_builder.cc src/analyze_tree.cc src/partial_guessing.cc
 GENTREE_OBJS = $(subst .cc,.o,$(GENTREE_SRCS)) src/rax.o
 
 all: gentree rule_regex_exp
@@ -87,7 +88,7 @@ src/tree_builder.o: src/tree_builder.cc src/tree_builder.h $(RADIX_ROOT)/rax.h s
 src/analyze_tree.o: src/analyze_tree.cc $(RADIX_ROOT)/rax.h src/analyze_tree.h src/rule_data.h
 	$(CXX) $(CXXFLAGS) $(CFLAGS_NATIVE_PW) $(RADIX_FLAGS) $(LFLAGS_NATIVE) -c src/analyze_tree.cc -o src/analyze_tree.o
 
-src/gentree.o: src/gentree.cc src/rule.h src/password_loader.h src/rule_loader.h src/util.h src/password_data.h src/tree_builder.h src/analyze_tree.h $(RADIX_ROOT)/rax.h
+src/gentree.o: src/gentree.cc src/rule.h src/password_loader.h src/rule_loader.h src/util.h src/password_data.h src/tree_builder.h src/analyze_tree.h src/partial_guessing.h $(RADIX_ROOT)/rax.h
 	$(CXX) $(CXXFLAGS) $(CFLAGS_NATIVE_PW) $(LFLAGS_NATIVE) $(RADIX_FLAGS) $(NEO4J_FLAGS) -c src/gentree.cc -o src/gentree.o 
 
 gentree: $(GENTREE_OBJS) $(HC_ARCHIVE) 
