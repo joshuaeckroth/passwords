@@ -1,3 +1,6 @@
+#ifndef PARTIAL_GUESSING
+#define PARTIAL_GUESSING
+
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -31,3 +34,5 @@ void generate_partial_guessing_strengths(PGV&);
 void print_pgd(const PGV &v);
 double get_strength_unseen();
 double compute_strength_unseen(const PGV&);
+
+#endif /* PARTIAL_GUESSING */

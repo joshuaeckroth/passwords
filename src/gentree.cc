@@ -82,7 +82,13 @@ int main(int argc, const char **argv) {
         double strength_unseen = compute_strength_unseen(partial_guess_data);
         cout << "Strength of unseen passwords will be: " << get_strength_unseen() << endl;
     }
-    TreeBuilder tb(passwords, dict_words, rules, count_per_cycle, score_decay_factor);
+    TreeBuilder tb(passwords,
+                   dict_words,
+                   rules,
+                   count_per_cycle,
+                   score_decay_factor,
+                   pw_distribution_fp != "",
+                   password_strengths);
     tb.build(num_cycles);
     rax *pw_tree_processed = tb.get_password_tree_processed();
     /*
@@ -94,7 +100,7 @@ int main(int argc, const char **argv) {
      */
     rax *rule_tree = tb.get_rule_tree();
     //raxShow(rule_tree);
-    analyze_rules(rule_tree);
+    analyze_rules(rule_tree, pw_distribution_fp != "");
     analyze_passwords(pw_tree_processed);
     return 0;
 }

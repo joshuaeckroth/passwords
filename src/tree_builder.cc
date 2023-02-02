@@ -14,6 +14,7 @@
 #include "rule_data.h"
 #include "rule.h"
 #include "analyze_tree.h"
+#include "partial_guessing.h"
 
 extern "C" {
 #include <rax.h>
@@ -28,8 +29,12 @@ using std::chrono::duration_cast;
 using std::chrono::duration;
 using std::chrono::milliseconds;
 
-TreeBuilder::TreeBuilder(const vector<string> *target_passwords, const vector<string> *dict_words, set<string> &rules, int target_cnt, float score_decay_factor)
-    : rules(std::move(rules)), choose_pw_cnt(target_cnt), score_decay_factor(score_decay_factor) {
+TreeBuilder::TreeBuilder(const vector<string> *target_passwords, const vector<string> *dict_words, set<string> &rules, int target_cnt, float score_decay_factor, bool using_partial_guessing, StrengthMap strength_map)
+    : rules(std::move(rules)),
+      choose_pw_cnt(target_cnt),
+      score_decay_factor(score_decay_factor),
+      using_partial_guessing(using_partial_guessing),
+      strength_map(strength_map) {
     this->targets = target_passwords;
     this->dict_words = dict_words;
     const size_t pw_cnt = target_passwords->size();
@@ -43,7 +48,9 @@ TreeBuilder::TreeBuilder(const vector<string> *target_passwords, const vector<st
     }
     for(size_t idx = 0; idx < target_passwords->size(); idx++) {
         string password = target_passwords->at(idx);
-        auto *pdp = new PasswordData(true, (pw_cnt - idx)/((float)pw_cnt + 1.0), idx);
+        auto *pdp = new PasswordData(true,
+                (using_partial_guessing) ? this->get_password_strength(password) : (pw_cnt - idx)/((float)pw_cnt + 1.0),
+                idx);
         if(0 == raxTryInsert(this->pw_tree_unprocessed, (unsigned char*) password.c_str(), password.size()+1, (void*) pdp, NULL)) {
             // this password has already been inserted
             continue;
@@ -54,7 +61,9 @@ TreeBuilder::TreeBuilder(const vector<string> *target_passwords, const vector<st
         cout << "Adding dictionary words to rax..." << endl;
         for(size_t idx = 0; idx < dict_words->size(); idx++) {
             string word = dict_words->at(idx);
-            auto *pdp = new PasswordData(false, (dict_words->size() - idx)/((float)dict_words->size() + 1.0), idx);
+            auto *pdp = new PasswordData(false,
+                    (using_partial_guessing) ? this->get_password_strength(word) : (dict_words->size() - idx)/((float)dict_words->size() + 1.0),
+                    idx);
             PasswordData *old_pdp = nullptr;
             if(0 == raxTryInsert(this->pw_tree_unprocessed, (unsigned char*) word.c_str(), word.size()+1, (void*) pdp, (void**)&old_pdp)) {
                 delete pdp; // this word is already a known password target from target_passwords vector
@@ -95,6 +104,15 @@ TreeBuilder::~TreeBuilder() {
     raxFree(pw_tree_unprocessed);
     raxFree(pw_tree_processed);
     raxFree(rule_tree);
+}
+
+double TreeBuilder::get_password_strength(std::string pw) {
+    if (this->strength_map.contains(pw)) {
+        return this->strength_map[pw];
+    } else {
+        // ensure compute_strength_unseen is called at some point before this, kind of a hack rn
+        return get_strength_unseen();
+    }
 }
 
 char* TreeBuilder::apply_rule(std::string rule, const std::string &pw) {
@@ -233,7 +251,10 @@ void TreeBuilder::build(size_t max_cycles) {
                         auto rdp = (RuleData *) old;
                         rule_factor = MIN(0.05, 0.01*rdp->hit_count/(float)(max_rule_hit_count+1));
                     }
-                    pdp = new PasswordData(false, MIN(1.0, parent_score * score_decay_factor + rule_factor), orig_idx_temp);
+                    pdp = new PasswordData(false,
+                            (using_partial_guessing) ? this->get_password_strength(string(new_pw))
+                            : MIN(1.0, parent_score * score_decay_factor + rule_factor),
+                            orig_idx_temp);
                     int check_pw_unprocessed_exists = raxTryInsert(this->pw_tree_unprocessed, (unsigned char*) new_pw, strlen(new_pw)+1, (void*) pdp, (void**) &old);
                     if (check_pw_unprocessed_exists == 0) { // generated pw already exists as unprocessed one
                         delete pdp;
@@ -260,6 +281,9 @@ void TreeBuilder::build(size_t max_cycles) {
                             rdp_comp = rdp_composite_existing;
                         }
                         rdp_comp->hit_count++;
+                        if (this->using_partial_guessing) {
+                            rdp_comp->hit_strength_sum += this->get_password_strength(string(new_pw));
+                        }
                         if(rdp_comp->hit_count > max_rule_hit_count) {
                             max_rule_hit_count = rdp_comp->hit_count;
                         }
@@ -335,7 +359,7 @@ void TreeBuilder::build(size_t max_cycles) {
         idx++;
 
         if(idx % 10 == 0) {
-            analyze_rules(this->rule_tree);
+            analyze_rules(this->rule_tree, this->using_partial_guessing);
             analyze_passwords(this->pw_tree_processed);
         }
 

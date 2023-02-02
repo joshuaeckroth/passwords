@@ -13,7 +13,7 @@ extern "C" {
 
 using std::cout, std::endl, std::string;
 
-void analyze_rules(rax* rule_tree) {
+void analyze_rules(rax* rule_tree, bool using_partial_guessing) {
     std::fstream results;
     std::fstream rulesout;
     results.open("results/rules_analysis.tsv", std::ios::out);
@@ -35,7 +35,7 @@ void analyze_rules(rax* rule_tree) {
             while ((pos = rule.find("_SPACE_")) != std::string::npos) {
                 rule.replace(pos, pos+7, " ");
             }
-            results << k << "\t" << rdp->hit_count << "\n";
+            results << k << "\t" << ((using_partial_guessing) ? rdp->hit_strength_sum  : rdp->hit_count) << "\n";
             rulesout << rule << "\n";
         }
         free(k);
