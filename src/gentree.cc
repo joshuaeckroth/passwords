@@ -74,13 +74,13 @@ int main(int argc, const char **argv) {
         dw = PasswordLoader::load_passwords(dictionary.c_str());
         dict_words = &dw;
     }
-    std::unordered_map<string, PartialGuessData> distribution;
+    //std::unordered_map<string, PartialGuessData> distribution;
+    PGV partial_guess_data;
     if (pw_distribution_fp != "") {
         cout << "Reading password distributions..." << endl;
-        distribution = read_distribution(pw_distribution_fp);
-        PGV prob_vec = to_probability_vec(distribution);
-        generate_partial_guessing_strengths(prob_vec);
-        print_pgd(prob_vec);
+        partial_guess_data = get_pguess_metrics(pw_distribution_fp);
+        //generate_partial_guessing_strengths(partial_guess_data);
+        //print_pgd(partial_guess_data);
     }
     TreeBuilder tb(passwords, dict_words, rules, count_per_cycle, score_decay_factor);
     tb.build(num_cycles);

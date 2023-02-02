@@ -4,19 +4,27 @@
 #include <utility>
 
 struct PartialGuessData {
-    std::string hash;
-    double index;
+    std::string password;
+    double index = 0.0;
     size_t occur_cnt;
-    double probability;
-    double strength;
-    PartialGuessData(std::string, double, size_t, double, double);
+    double probability = 0.0;
+    double cumulative_probability = 0.0;
+    double strength = 0.0;
+    PartialGuessData(std::string, size_t);
 };
 
 typedef std::unordered_map<std::string, PartialGuessData> PGM;
 typedef std::vector<PartialGuessData> PGV;
 
-PGM read_distribution(std::string path);
-PGV to_probability_vec(const PGM &m, bool sort = true);
+PGV read_pguess_cache(std::string path);
+PGV get_pguess_metrics(std::string path_to_distribution,
+                       size_t pw_col_idx = 0,
+                       size_t freq_col_idx = 2,
+                       const char delim = '\t',
+                       bool skip_headers = true,
+                       bool use_cache = true,
+                       std::string cache_path = "data/pguess_metrics_cache.tsv",
+                       bool lc_password = false);
 void generate_partial_guessing_strengths(PGV&);
 void print_pgd(const PGV &v);
 double strength_unseen(const PGV&);
