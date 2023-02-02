@@ -15,7 +15,9 @@ struct PartialGuessData {
 
 typedef std::unordered_map<std::string, PartialGuessData> PGM;
 typedef std::vector<PartialGuessData> PGV;
+typedef std::unordered_map<std::string, double> StrengthMap;
 
+StrengthMap make_strength_map(const PGV &v);
 PGV read_pguess_cache(std::string path);
 PGV get_pguess_metrics(std::string path_to_distribution,
                        size_t pw_col_idx = 0,
@@ -27,4 +29,5 @@ PGV get_pguess_metrics(std::string path_to_distribution,
                        bool lc_password = false);
 void generate_partial_guessing_strengths(PGV&);
 void print_pgd(const PGV &v);
-double strength_unseen(const PGV&);
+double get_strength_unseen();
+double compute_strength_unseen(const PGV&);

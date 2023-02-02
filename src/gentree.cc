@@ -22,8 +22,6 @@ extern "C" {
 using std::set, std::vector, std::string, std::cout, std::endl;
 
 int main(int argc, const char **argv) {
-//    cout << sha1("password") << endl;
-//    cout << sha1("12345") << endl;
     cout << "gentree starting..." << endl;
     string password_list, rule_list, dictionary, pw_distribution_fp;
     int count_per_cycle, num_cycles;
@@ -75,12 +73,14 @@ int main(int argc, const char **argv) {
         dict_words = &dw;
     }
     //std::unordered_map<string, PartialGuessData> distribution;
+    StrengthMap password_strengths;
     PGV partial_guess_data;
     if (pw_distribution_fp != "") {
         cout << "Reading password distributions..." << endl;
         partial_guess_data = get_pguess_metrics(pw_distribution_fp);
-        //generate_partial_guessing_strengths(partial_guess_data);
-        //print_pgd(partial_guess_data);
+        password_strengths = make_strength_map(partial_guess_data);
+        double strength_unseen = compute_strength_unseen(partial_guess_data);
+        cout << "Strength of unseen passwords will be: " << get_strength_unseen() << endl;
     }
     TreeBuilder tb(passwords, dict_words, rules, count_per_cycle, score_decay_factor);
     tb.build(num_cycles);

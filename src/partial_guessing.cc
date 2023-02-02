@@ -10,6 +10,7 @@
 #include <cstdlib>
 #include <cctype>
 #include <numeric>
+#include <limits>
 #include <algorithm>
 #include "partial_guessing.h"
 
@@ -25,6 +26,14 @@ void print_pgd(const PGV &v) {
             << "\n - Probability: " << element.probability
             << "\n - Strength: " << element.strength << endl;
     }
+}
+
+StrengthMap make_strength_map(const PGV &v) {
+    StrengthMap m;
+    for (const auto &element : v) {
+        m.insert({element.password, element.strength});
+    }
+    return m;
 }
 
 PGV read_pguess_cache(string path) {
@@ -51,14 +60,21 @@ PGV read_pguess_cache(string path) {
 void cache_pguess_metrics(const PGV &probabilities, string path) {
     cout << "Caching partial guess metric results..." << endl;
     std::ofstream file(path);
+    auto str_precise = [](double d) {
+        const size_t precision = 14;
+        std::ostringstream out;
+        out.precision(precision);
+        out << std::fixed << d;
+        return out.str();
+    };
     if (file.is_open()) {
         for (const auto &element : probabilities) {
             string line = element.password
-                + "\t" + std::to_string(element.index)
+                + "\t" + str_precise(element.index)
                 + "\t" + std::to_string(element.occur_cnt)
-                + "\t" + std::to_string(element.probability)
-                + "\t" + std::to_string(element.cumulative_probability)
-                + "\t" + std::to_string(element.strength);
+                + "\t" + str_precise(element.probability)
+                + "\t" + str_precise(element.cumulative_probability)
+                + "\t" + str_precise(element.strength);
             file << line << endl;
         }
         file.close();
@@ -73,8 +89,16 @@ void cache_pguess_metrics(const PGV &probabilities, string path) {
 }
 
 size_t alpha_work_factor(const PGV &probabilities, double alpha, size_t &awf_start_idx) {
-    size_t idx = (0 < awf_start_idx - 1) ? 0 : awf_start_idx - 1;
-    double cumulative_probability = 0.0;
+    //size_t idx = (0 < awf_start_idx - 1 || awf_start_idx - 1 == std::numeric_limits<size_t>::max()) ? 0 : awf_start_idx - 1;
+    size_t idx = (awf_start_idx - 1 == std::numeric_limits<size_t>::max()) ? 0 : awf_start_idx - 1;
+    if (idx != 0) {
+    //cout << "idx is: " << idx << endl;
+    } else {
+      //  cout << "idxxxx is: " << idx << endl;
+    }
+    if (alpha == 1.0) return probabilities.size();
+    double cumulative_probability = probabilities[idx].cumulative_probability; //0.0;
+    idx++;
     while (cumulative_probability < alpha) {
         cumulative_probability += probabilities[idx].probability;
         idx++;
@@ -89,16 +113,51 @@ double alpha_guesswork(const PGV &probabilities, double alpha, size_t &awf_start
         return std::log2(N);
     } else {
         const size_t awf = alpha_work_factor(probabilities, alpha, awf_start_idx);
+        //cout << "awf is: " << awf << endl;
         double summation = 0.0;
         for (size_t idx = 1; idx <= awf; idx++) {
             summation += probabilities[idx-1].probability * idx;
         }
+        //cout << "summation is: " << summation << endl;
         // sum of p_sub_i from i=1 to alpha-work-factor
         const double alpha_up = probabilities[awf-1].cumulative_probability;
         double agw = ((1.0 - alpha_up) * (double) awf) + summation;
+        //cout << "alpha_up is: " << alpha_up << endl;
         double agw2 = std::log2(((2.0 * agw) / alpha_up) - 1.0) - std::log2(2.0 - alpha_up);
         return agw2;
     }
+}
+
+bool unseen_computed = false;
+double strength_unseen_cached = 0.0;
+
+double get_strength_unseen() {
+    return strength_unseen_cached;
+}
+
+double compute_strength_unseen(const PGV &probabilities) {
+    cout << "Computing strength of unseen passwords" << endl;
+    if (unseen_computed) {
+        return strength_unseen_cached;
+    }
+    size_t idx = 0;
+    double agw = alpha_guesswork(probabilities, 1.0, idx);
+    strength_unseen_cached = agw;
+    unseen_computed = true;
+//    const size_t N = probabilities.size();
+//    const double alpha = 1.0;
+//    const size_t awf = N;
+//    double summation = 0.0;
+//    for (size_t idx = 1; idx < awf; idx++) {
+//        summation += probabilities[idx-1].probability * idx;
+//    }
+//    const double alpha_up = alpha;
+//    double agw = ((1.0 - alpha_up) * (double) awf) + summation;
+//    double agw2 = std::log2(((2.0 * agw) / alpha_up) - 1.0) - std::log2(2.0 - alpha_up);
+//    strength_unseen_cached = agw2;
+//    unseen_computed = true;
+    //return strength_unseen_cached;
+    return strength_unseen_cached; //std::log2(N + 1);
 }
 
 void generate_partial_guessing_strengths(PGV &probabilities) {
@@ -106,6 +165,7 @@ void generate_partial_guessing_strengths(PGV &probabilities) {
     size_t awf_start_idx = 0;
     for (size_t idx = 0; idx < N; idx++) {
         const double alpha = probabilities[idx].cumulative_probability;
+        //cout << "alpha for pw " << probabilities[idx].password << " is " << alpha << endl;
         const double strength = alpha_guesswork(probabilities, alpha, awf_start_idx);
         probabilities[idx].strength = strength;
         if (idx % 10000 == 0) {
@@ -208,189 +268,4 @@ PGV get_pguess_metrics(string path_to_distribution,
     cache_pguess_metrics(v, cache_path);
     //print_pgd(v);
     return v;
-}
-
-//PGV to_probability_vec(const PGM &m, bool sort) {
-//    PGV m_elements;
-//    for (const auto &element : m) {
-//        m_elements.push_back(element.second);
-//    }
-//    if (sort) {
-//        std::sort(m_elements.begin(), m_elements.end(), [](const auto &a, const auto &b) {
-//            return a.index < b.index;
-//        });
-//        double cumulative_probability = 0.0;
-//        for (auto &element : m_elements) {
-//            element.cumulative_probability = cumulative_probability;
-//            cumulative_probability += element.probability;
-//        }
-//    }
-//    return m_elements;
-//}
-
-//void print_pgd(const PGM &m) {
-//    PGV m_elements = to_probability_vec(m);
-//    print_pgd(m_elements);
-//}
-
-//PGV get_pguess_metrics(string path) {
-//    PGV v;
-//    std::stack<PartialGuessData> dup_stack;
-//    auto empty_stack = [&](size_t idx) {
-//        size_t stack_size = dup_stack.size();
-//        size_t j = idx - 1;
-//        size_t i = idx - stack_size + 1;
-//        double index = (stack_size == 1) ? v.size() - idx // 
-//            : (j + i) / 2.0;
-//        while (!dup_stack.empty()) {
-//            PartialGuessData top = dup_stack.top();
-//            top.index = index;
-//            //v.insert({top.password, top});
-//            v.push_back(top);
-//            dup_stack.pop();
-//        }
-//    };
-//    const char delim = ':';
-//    std::ifstream in_f(path);
-//    string line;
-//    size_t idx = 0; //0;
-//    size_t sample_space_size = 0;
-//    while (std::getline(in_f, line)) {
-//        //std::transform(line.begin(), line.end(), line.begin(), ::tolower);
-//        string token;
-//        std::istringstream token_stream(line);
-//        std::getline(token_stream, token, delim);
-//        const string password = token;
-//        std::getline(token_stream, token, delim);
-////        cout << "token c_str: " << token.c_str() << endl;
-//        const size_t count = atoi(token.c_str());
-////        cout << "count: " << count << endl;
-//        sample_space_size += count;
-////        cout << "sample_space_size: " << sample_space_size << endl;
-//        if (dup_stack.empty()) {
-//            dup_stack.push({password, 0.0, count, 0.0, 0.0});
-//        } else {
-//            auto top = dup_stack.top();
-//            if (top.occur_cnt != count) {
-//                empty_stack(idx); //- 1);
-//            }
-//            dup_stack.push({password, 0.0, count, 0.0, 0.0});
-//        }
-//        idx++;
-//    }
-//    empty_stack(idx); //- 1);
-////    double cumulative_probability = 0.0;
-////    size_t duplicate_count = 1;
-////    double last_probability = 0.0;
-////    for (auto &element : v) {
-////        double p = (double) element.occur_cnt / sample_space_size;
-////        element.probability = p;
-//        // ensure events with the same p also have the same cumulative probability
-//        // and that the cumulative probability of events after duplicates incorporate
-//        // the sum of probabilities of events w/ duplicate probabilities
-////        if (last_probability != p) {
-////            cumulative_probability += p * duplicate_count;
-////            last_probability = p;
-////            duplicate_count = 1;
-////            element.cumulative_probability = cumulative_probability;
-////        } else {
-////            duplicate_count++;
-////            element.cumulative_probability = cumulative_probability;
-////        }
-//        //cumulative_probability += p;
-//        //element.cumulative_probability = cumulative_probability;
-////    }
-//
-//    double cp = 0.0; // cumulative probability
-//    double ocp = 0.0; // 'old' cumulative probability - make sure events with the same probability have identical cp values
-//    double lp = 0.0; // last probability
-//    for (auto &ele : v) {
-//        double p = (double) ele.occur_cnt / (double) sample_space_size;
-//        ele.probability = p;
-//        if (lp == p) {
-//            cp += p;
-//            ele.cumulative_probability = ocp;
-//        } else {
-//            cp += p;
-//            ocp = cp;
-//            lp = p;
-//            ele.cumulative_probability = cp;
-//        }
-//    }
-//
-//    return v;
-//}
-
-/*
- * the definition of G ̃α requires several parts. The α-work-factor
- * μα reflects the required size μ of a dictionary needed to have a
- * cumulative probability α of success in an optimal guessing attack
- */
-
-//size_t alpha_work_factor(const PGV &probabilities, double alpha) {
-//    // indexes probabilities and will return as min size when cumulative_probability exceeds alpha
-//    size_t idx = 0;
-//    double cumulative_probability = 0.0;
-//    // TODO: binsearch
-////    auto binsearch = [&]() {
-////        size_t l = 0;
-////        size_t r = probabilities.size() - 1;
-////        while (l < r) {
-////            size_t mid = l + (r - l) / 2;
-////            if (probabilities[mid].cumulative_probability < alpha) {
-////                l = mid + 1;
-////            } else {
-////                r = mid;
-////            }
-////        }
-////        return l;
-////    };
-//    while (cumulative_probability < alpha) {
-//        cumulative_probability += probabilities[idx].probability;
-//        idx++;
-//    }
-//    return idx; //binsearch();
-//}
-
-//double alpha_guesswork(const PGV &probabilities, double alpha, bool uniform_dist = false) {
-//    if (uniform_dist) {
-//        const size_t N = probabilities.size();
-//        return std::log2(N);
-//    } else {
-//        const size_t a_ceil = std::max((int) std::ceil(alpha), 1);
-//        size_t awf = alpha_work_factor(probabilities, alpha);
-//        cout << "alpha work factor is: " << awf << endl; // *****
-//        double summation = 0.0;
-//        for (size_t idx = 1; idx <= awf; idx++) {
-//            cout << "probability of idx: " << idx << " is: " << probabilities[idx-1].probability << endl;
-//            summation += probabilities[idx-1].probability * probabilities[idx-1].index;
-//        }
-//        cout << "summation is: " << summation << endl;
-//        // avg guesses per acc
-//        double agw = ((1 - a_ceil) * awf) + summation;
-//        cout << "agw is: " << agw << endl;
-//        double agw2 = std::log2(((2.0 * agw) / a_ceil) + 1) - std::log2(2 - a_ceil);
-//        return agw2;
-//    }
-//}
-
-//void generate_partial_guessing_strengths(PGV &probabilities) {
-//    const size_t N = probabilities.size();
-//    //double cumulative_prob = 0.0;
-//    for (size_t idx = 0; idx < N; idx++) {
-//        //cumulative_prob += probabilities[idx].probability;
-//        const double alpha = probabilities[idx].cumulative_probability; //cumulative_prob;
-//         cout << "For password " << idx << " alpha is: " << alpha << endl; // *****
-//        const double strength = alpha_guesswork(probabilities, alpha); /// alpha;
-//        probabilities[idx].strength = strength;
-//        if (idx % 10000 == 0) {
-//            cout << "Generated strength for " << idx << " passwords" << endl;
-//        }
-//    }
-//    cout << "lg N is: " << std::log2(N) << endl;
-//}
-
-double strength_unseen(const PGV &probabilities) {
-    const size_t N = probabilities.size();
-    return std::log2(N + 1);
 }
