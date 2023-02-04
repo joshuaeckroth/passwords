@@ -38,7 +38,7 @@ def main():
     ax.legend(fontsize=10)
     ax.set_ylabel("# cracked")
     ax.set_xlabel("# attempted")
-    #ax.set_xscale("log")
+    ax.set_xscale("log")
     ax.set_title("cracked / attempted by sets of rules")
     at = AnchoredText("Hashes: " + hashed + "\n" + "Wordlist: " + words, prop=dict(size=10), frameon=True, loc='lower right')
     at.patch.set_boxstyle("round,pad=0.,rounding_size=0.2")

@@ -80,8 +80,8 @@ void initialize_rule_replacements() {
     rule_replacements.push_back(pair<regex, string>("(^| )C t", "$1c"));
     rule_replacements.push_back(pair<regex, string>("(^| )([rkKt]) \\2", "$1"));
     rule_replacements.push_back(pair<regex, string>(R"((^| )[\^\$](.) @\2)", "$1@$2"));
-    rule_replacements.push_back(pair<regex, string>(R"((^| )\^. \[)", "$1$2"));
-    rule_replacements.push_back(pair<regex, string>(R"((^| )\^(.) \] \^(.))", "$1] ^$2 ^$3"));
+    rule_replacements.push_back(pair<regex, string>(R"((^| )\^. \[)", "$1"));
+    rule_replacements.push_back(pair<regex, string>(R"((^| )\^(.) \] \^(.))", "$1^$2 ^$3 ]"));
     rule_replacements.push_back(pair<regex, string>(R"((^| )\$(.) \[ \$(.))", "$1[ \\$$2 \\$$3"));
     rule_replacements.push_back(pair<regex, string>(R"((^| )\$. \])", "$1$2"));
     rule_replacements.push_back(pair<regex, string>(R"((^| )\^. r \])", "$1r"));
@@ -101,8 +101,8 @@ void initialize_rule_replacements() {
     rule_replacements.push_back(pair<regex, string>(R"((^| )\[ \])", "$1] [")); // right always before left bracket
     rule_replacements.push_back(pair<regex, string>("(^| )\\{ \\}", "$1"));
     rule_replacements.push_back(pair<regex, string>("(^| )\\} \\{", "$1"));
-    rule_replacements.push_back(pair<regex, string>(R"((^| )\^. (\$. |[\]ulcCt] |s.. )+\[)", "$1$2"));
-    rule_replacements.push_back(pair<regex, string>(R"((^| )\$. (\^. |[\[ulcCt] |o.. |s.. )+\])", "$1$2"));
+    rule_replacements.push_back(pair<regex, string>(R"((^| )\^. (\$. |[\]ulcCt] |s.. |K )+\[)", "$1$2"));
+    rule_replacements.push_back(pair<regex, string>(R"((^| )\$. (\^. |[\[ulcCt] |o.. |s.. |k )+\])", "$1$2"));
     rule_replacements.push_back(pair<regex, string>(R"((^| )\$. \} \[)", "$1"));
     rule_replacements.push_back(pair<regex, string>(R"((^| )\^. \{ \])", "$1"));
     rule_replacements.push_back(pair<regex, string>("(^| )\\} \\[", "$1]"));
@@ -132,6 +132,13 @@ void initialize_rule_replacements() {
     rule_replacements.push_back(pair<regex, string>(R"((^| )(s\S\S|\$\S|C|c|t|u|l) \[)", "$1[ $2"));
     // switching a char you just inserted
     rule_replacements.push_back(pair<regex, string>(R"((^| )(\$\^)(\S) s\3(\S))", "$1$2$4 s$3$4"));
+
+    // not equiv, but don't let ] appear anywhere but the end, and [ anywhere but the beginning
+    // make result invalid
+    rule_replacements.push_back(pair<regex, string>(".*\\] [^\\]]+ \\].*", ""));
+    rule_replacements.push_back(pair<regex, string>(".*\\[ [^\\[]+ \\[.*", ""));
+    rule_replacements.push_back(pair<regex, string>(".*\\] [^\\]]+$", ""));
+    rule_replacements.push_back(pair<regex, string>("^[^\\[]+ \\[.*", ""));
 
     // cleanup spaces
     rule_replacements.push_back(pair<regex, string>(" +", " "));

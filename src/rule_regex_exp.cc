@@ -27,7 +27,9 @@ void gen(int i, size_t &gensize, rax *generated_rules, rax *simplified_rules, co
                 raxInsert(new_generated_rules, (unsigned char*)gr_new.c_str(), gr_new.size()+1, NULL, NULL);
                 gensize++;
                 string s_new = simplify_rule(gr_new);
-                raxInsert(simplified_rules, (unsigned char*)s_new.c_str(), s_new.size()+1, NULL, NULL);
+                if(!s_new.empty()) {
+                    raxInsert(simplified_rules, (unsigned char*)s_new.c_str(), s_new.size()+1, NULL, NULL);
+                }
                 /*
                 if(s_new != gr_new) {
                     cout << gr_new << " -> " << s_new << endl;

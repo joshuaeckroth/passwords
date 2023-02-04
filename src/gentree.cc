@@ -38,9 +38,9 @@ int main(int argc, const char **argv) {
         dw = PasswordLoader::load_passwords(argv[6]);
         dict_words = &dw;
     }
-    TreeBuilder tb(passwords, dict_words, rules, atoi(argv[3]), atof(argv[5]));
+    TreeBuilder tb(passwords, dict_words, rules, atoi(argv[3]), atof(argv[5]), atoi(argv[4]));
     //cout << tb.check_intermediate(0, "$1 $2 $3 { }", "password123") << endl;
-    tb.build(atoi(argv[4]));
+    tb.build();
     rax *pw_tree_processed = tb.get_password_tree_processed();
     /*
     cout << "Processed passwords:" << endl;
