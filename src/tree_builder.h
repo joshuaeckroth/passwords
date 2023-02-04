@@ -8,6 +8,7 @@
 #include <utility>
 
 #include "password_data.h"
+#include "partial_guessing.h"
 
 extern "C" {
 #include <rax.h>
@@ -17,10 +18,17 @@ typedef std::pair<std::string, const PasswordData*> QueueEntry;
 
 class TreeBuilder {
     private:
+        bool using_partial_guessing;
+        StrengthMap strength_map;
+        double get_password_strength(std::string);
         struct password_score_comparer {
             // if this bool function returns true, it means a is less than b, so b is preferred over a
             bool operator() (QueueEntry &a, QueueEntry &b) {
-                return a.second->score < b.second->score;
+                if (this->using_partial_guessing) { // in case of partial guessing score is *strength* of pw so we want to try lower scored (weaker) pws
+                    return a.second->score > b.second->score;
+                } else {
+                    return a.second->score < b.second->score;
+                }
             }
         };
         [[nodiscard]] static char* apply_rule(std::string rule, const std::string &pw) ;
@@ -39,7 +47,7 @@ class TreeBuilder {
     public:
 
         bool check_intermediate(unsigned int, std::string, const char*) const;
-        TreeBuilder(const std::vector<std::string> *target_passwords, const std::vector<std::string> *dict_words, std::set<std::string> &rules, int target_cnt, float score_deay_factor, size_t max_cycles);
+        TreeBuilder(const std::vector<std::string> *target_passwords, const std::vector<std::string> *dict_words, std::set<std::string> &rules, int target_cnt, float score_deay_factor, size_t max_cycles, bool using_partial_guessing, StrengthMap strength_map);
         ~TreeBuilder();
         void build();
         rax* get_password_tree_processed();
