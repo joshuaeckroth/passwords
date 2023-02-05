@@ -24,7 +24,7 @@ class TreeBuilder {
         struct password_score_comparer {
             // if this bool function returns true, it means a is less than b, so b is preferred over a
             bool operator() (QueueEntry &a, QueueEntry &b) {
-                if (this->using_partial_guessing) { // in case of partial guessing score is *strength* of pw so we want to try lower scored (weaker) pws
+                if (true) { // in case of partial guessing score is *strength* of pw so we want to try lower scored (weaker) pws
                     return a.second->score > b.second->score;
                 } else {
                     return a.second->score < b.second->score;
