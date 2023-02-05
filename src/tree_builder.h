@@ -42,13 +42,14 @@ class TreeBuilder {
         rax *rule_tree = nullptr;
         std::priority_queue<QueueEntry, std::vector<QueueEntry>, password_score_comparer> pwqueue;
         std::set<QueueEntry> choose_passwords(size_t);
-        static bool is_ascii(const char*, size_t) ;
+        static bool is_ascii(const char*, size_t);
+        size_t max_cycles;
     public:
 
         bool check_intermediate(unsigned int, std::string, const char*) const;
-        TreeBuilder(const std::vector<std::string> *target_passwords, const std::vector<std::string> *dict_words, std::set<std::string> &rules, int target_cnt, float score_deay_factor, bool using_partial_guessing, StrengthMap strength_map);
+        TreeBuilder(const std::vector<std::string> *target_passwords, const std::vector<std::string> *dict_words, std::set<std::string> &rules, int target_cnt, float score_deay_factor, size_t max_cycles, bool using_partial_guessing, StrengthMap strength_map);
         ~TreeBuilder();
-        void build(size_t);
+        void build();
         rax* get_password_tree_processed();
         rax* get_password_tree_unprocessed();
         rax* get_rule_tree();

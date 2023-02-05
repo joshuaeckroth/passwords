@@ -87,9 +87,10 @@ int main(int argc, const char **argv) {
                    rules,
                    count_per_cycle,
                    score_decay_factor,
+                   num_cycles,
                    pw_distribution_fp != "",
                    password_strengths);
-    tb.build(num_cycles);
+    tb.build();
     rax *pw_tree_processed = tb.get_password_tree_processed();
     /*
     cout << "Processed passwords:" << endl;

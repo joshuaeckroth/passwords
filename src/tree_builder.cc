@@ -29,10 +29,11 @@ using std::chrono::duration_cast;
 using std::chrono::duration;
 using std::chrono::milliseconds;
 
-TreeBuilder::TreeBuilder(const vector<string> *target_passwords, const vector<string> *dict_words, set<string> &rules, int target_cnt, float score_decay_factor, bool using_partial_guessing, StrengthMap strength_map)
+TreeBuilder::TreeBuilder(const vector<string> *target_passwords, const vector<string> *dict_words, set<string> &rules, int target_cnt, float score_decay_factor, size_t max_cycles, bool using_partial_guessing, StrengthMap strength_map)
     : rules(std::move(rules)),
       choose_pw_cnt(target_cnt),
       score_decay_factor(score_decay_factor),
+      max_cycles(max_cycles),
       using_partial_guessing(using_partial_guessing),
       strength_map(strength_map) {
     this->targets = target_passwords;
@@ -56,6 +57,8 @@ TreeBuilder::TreeBuilder(const vector<string> *target_passwords, const vector<st
             continue;
         }
         this->pwqueue.emplace(password, pdp);
+        if(this->pwqueue.size() > (max_cycles*choose_pw_cnt)/2)
+            break;
     }
     if (dict_words != nullptr) {
         cout << "Adding dictionary words to rax..." << endl;
@@ -69,6 +72,8 @@ TreeBuilder::TreeBuilder(const vector<string> *target_passwords, const vector<st
                 delete pdp; // this word is already a known password target from target_passwords vector
             } else {
                 this->pwqueue.emplace(word, pdp);
+                if(this->pwqueue.size() > (max_cycles*choose_pw_cnt))
+                    break;
             }
         }
     }
@@ -169,7 +174,7 @@ bool TreeBuilder::check_intermediate(unsigned int orig_target_idx, string rule, 
     return flag;
 }
 
-void TreeBuilder::build(size_t max_cycles) {
+void TreeBuilder::build() {
     size_t pw_choose_n = this->choose_pw_cnt;
     size_t idx = 0;
     int target_hit_count = 0;
@@ -220,20 +225,19 @@ void TreeBuilder::build(size_t max_cycles) {
                 for (const string &rh : prior_rule_histories) {
                     string rh2 = rh + " " + rule;
                     pair<size_t, size_t> cnt_kinds = count_distinct_rule_kinds(rh2);
-                    if(true || (cnt_kinds.first <= 3 && cnt_kinds.second <= 8)) {
-                        bool no_intermediate = check_intermediate(orig_idx_temp, rh2, new_pw);
-                        if(no_intermediate) {
-                            check_pos = check_rule_position_validity(rh2, password);
-                            if (check_pos) {
-                                rh2 = simplify_rule(rh2);
-                                if(!rh2.empty()) {
-                                    new_rule_histories.insert(rh2);
-                                    rule_length += cnt_kinds.second;
-                                }
+                    //if(cnt_kinds.first <= 3 && cnt_kinds.second <= 8) {
+                    bool no_intermediate = check_intermediate(orig_idx_temp, rh2, new_pw);
+                    if(no_intermediate) {
+                        check_pos = check_rule_position_validity(rh2, password);
+                        if (check_pos) {
+                            rh2 = simplify_rule(rh2);
+                            if(!rh2.empty()) {
+                                new_rule_histories.insert(rh2);
+                                rule_length += cnt_kinds.second;
                             }
-                        } else {
-                            rule_abandoned_intermediate_repeat++;
                         }
+                    } else {
+                        rule_abandoned_intermediate_repeat++;
                     }
                 }
                 new_rule_histories.insert(rule);
@@ -287,7 +291,7 @@ void TreeBuilder::build(size_t max_cycles) {
                         if(rdp_comp->hit_count > max_rule_hit_count) {
                             max_rule_hit_count = rdp_comp->hit_count;
                         }
-                        if (!orig_pdp->is_target && rdp_comp->hit_count > 1 && idx > 0 && rdp_comp->hit_count > idx/4) {
+                        if (!orig_pdp->is_target && rdp_comp->hit_count > 1 && idx > 0 && rdp_comp->hit_count > 10) {
                             if(this->rules.find(rh) == this->rules.end()) {
                                 added_rules.insert(rh);
                                 new_rule_primitive = true;
@@ -295,7 +299,7 @@ void TreeBuilder::build(size_t max_cycles) {
                         }
                     }
                     // mark it as not a target anymore since it's been hit too many times
-                    if(pdp->hit_count >= 5) {
+                    if(pdp->hit_count >= 1) {
                         pdp->is_target = false;
                     }
                 }
@@ -358,12 +362,12 @@ void TreeBuilder::build(size_t max_cycles) {
         target_hit_count = not_target_hit_count = 0;
         idx++;
 
-        if(idx % 10 == 0) {
+        if(idx % 100 == 0) {
             analyze_rules(this->rule_tree, this->using_partial_guessing);
             analyze_passwords(this->pw_tree_processed);
         }
 
-        if(idx % 10 == 0) {
+        if(idx % 1000 == 0) {
             if(pwqueue.size() > (max_cycles-idx)*choose_pw_cnt) {
                 // remove low-scoring pws
                 std::priority_queue<QueueEntry, std::vector<QueueEntry>, password_score_comparer> pwqueue2;

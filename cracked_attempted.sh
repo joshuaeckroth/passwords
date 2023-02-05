@@ -50,10 +50,13 @@ do
     TOP_N_STARTED=$RDIR/hc_status_started_top_$i.txt
     TOP_N_DATA=$RDIR/hc_data_generated_top_$i.tsv
     tail -n $i $RESULTS_SORTED | cut -f1 > $TOP_N
-    rm -rf $POTFILE_DIR
-    hashcat --status --status-timer=$HC_REPORT_INTERVAL -d $HC_DEVICE -m $HC_HASH -a 0 -r $TOP_N $HASHED $WORDS | grep '\(Recovered\.\.\.\|Progress\.\.\.\|Time\.Estimated\|Time\.Started\)' > $TOP_N_STATUS
-    cat $TOP_N_STATUS | grep -Eo 'Recovered.+\s([0-9]+)' | awk '{print $2}' > $TOP_N_RECOVERED
-    cat $TOP_N_STATUS | grep -Eo 'Progress.+\s([0-9]+)' | awk '{print $2}' > $TOP_N_PROGRESS
+    if [ ! -e $TOP_N_STATUS ]
+    then
+        rm -rf $POTFILE_DIR
+        hashcat -O --status --status-timer=$HC_REPORT_INTERVAL -d $HC_DEVICE -m $HC_HASH -a 0 -r $TOP_N $HASHED $WORDS | grep '\(Recovered\.\.\.\|Progress\.\.\.\)' > $TOP_N_STATUS
+    fi
+    cat $TOP_N_STATUS | grep -Eo 'Recovered\.+: ([0-9]+)' | awk '{print $2}' > $TOP_N_RECOVERED
+    cat $TOP_N_STATUS | grep -Eo 'Progress\.+: ([0-9]+)' | awk '{print $2}' > $TOP_N_PROGRESS
     ## cat $TOP_N_STATUS | grep Started > $TOP_N_STARTED
     echo -e "0\t0" > $TOP_N_DATA
     paste $TOP_N_RECOVERED $TOP_N_PROGRESS >> $TOP_N_DATA
@@ -76,10 +79,13 @@ if [ $# -gt 5 ]; then
         ADDITIONAL_PROGRESS=$RDIR/hc_status_progress_$RULEFILE_NAME.txt
         ADDITIONAL_STARTED=$RDIR/hc_status_started_$RULEFILE_NAME.txt
         ADDITIONAL_DATA=$RDIR/hc_data_$RULEFILE_NAME.tsv
-        rm -rf $POTFILE_DIR
-        hashcat --status --status-timer=$HC_REPORT_INTERVAL -d $HC_DEVICE -m $HC_HASH -a 0 -r $RULEFILE $HASHED $WORDS | grep '\(Recovered\.\.\.\|Progress\.\.\.\|Time\.Estimated\|Time\.Started\)' > $ADDITIONAL_STATUS
-        cat $ADDITIONAL_STATUS | grep -Eo 'Recovered.+\s([0-9]+)' | awk '{print $2}' > $ADDITIONAL_RECOVERED
-        cat $ADDITIONAL_STATUS | grep -Eo 'Progress.+\s([0-9]+)' | awk '{print $2}' > $ADDITIONAL_PROGRESS
+        if [ ! -e $ADDITIONAL_STATUS ]
+        then
+            rm -rf $POTFILE_DIR
+            hashcat -O --status --status-timer=$HC_REPORT_INTERVAL -d $HC_DEVICE -m $HC_HASH -a 0 -r $RULEFILE $HASHED $WORDS | grep '\(Recovered\.\.\.\|Progress\.\.\.\)' > $ADDITIONAL_STATUS
+        fi
+        cat $ADDITIONAL_STATUS | grep -Eo 'Recovered\.+: ([0-9]+)' | awk '{print $2}' > $ADDITIONAL_RECOVERED
+        cat $ADDITIONAL_STATUS | grep -Eo 'Progress\.+: ([0-9]+)' | awk '{print $2}' > $ADDITIONAL_PROGRESS
         ## cat $ADDITIONAL_STATUS | grep Started > $ADDITIONAL_STARTED
         echo -e "0\t0" > $ADDITIONAL_DATA
         paste $ADDITIONAL_RECOVERED $ADDITIONAL_PROGRESS >> $ADDITIONAL_DATA
