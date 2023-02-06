@@ -24,6 +24,7 @@ def main():
     all_files = top_n_files + additional_files
     all_rule_counts = top_n_rule_counts + additional_rule_counts
     data_map = {}
+    rpp_map = {'top_n': [], 'comparison': {}}
     fig, ax = plt.subplots()
     idx = 0
     for file in all_files:
@@ -40,7 +41,13 @@ def main():
                 y_vals.append(recovered)
                 x_vals.append(attempted)
         ax.plot(x_vals, y_vals, label=key, color=plt.cm.rainbow(idx/len(all_files)))
-        print(file, "cracked%", 100*np.max(np.array(y_vals))/100000000, "rules", all_rule_counts[idx], "RPP", np.round(all_rule_counts[idx] / np.max(100*np.array(y_vals)/100000000 - 6.450)))
+        rpp = np.round(all_rule_counts[idx] / np.max(100*np.array(y_vals)/100000000 - 6.450))
+        cracked_pct = 100*np.max(np.array(y_vals))/100000000
+        print(file, "cracked%", cracked_pct, "rules", all_rule_counts[idx], "RPP", rpp)
+        if idx < len(top_n_files):
+            rpp_map['top_n'].append({'cracked%': cracked_pct, 'rpp': rpp})
+        else:
+            rpp_map['comparison'][key] = {'cracked%': cracked_pct, 'rpp': rpp}
         idx += 1
     ax.legend(fontsize=10)
     ax.set_ylabel("# cracked")
@@ -54,6 +61,16 @@ def main():
     fig.tight_layout()
     plt.savefig("cracked_attempted_plot_" + fileuuid + ".png", dpi=300)
     plt.savefig("cracked_attempted_plot_" + fileuuid + ".pdf", dpi=300)
+
+    print(rpp_map)
+    fig, ax = plt.subplots()
+    for key in rpp_map['comparison']:
+        ax.plot(rpp_map['comparison'][key]['rpp'], rpp_map['comparison'][key]['cracked%'], 'o')
+        ax.annotate(key, xy=(rpp_map['comparison'][key]['rpp'], rpp_map['comparison'][key]['cracked%']), textcoords='data')
+    ax.plot(list(map(lambda x: x['rpp'], rpp_map['top_n'])), list(map(lambda x: x['cracked%'], rpp_map['top_n'])), 'o')
+    fig.tight_layout()
+    plt.savefig("cracked_attempted_rpp_plot_" + fileuuid + ".pdf", dpi=300)
+
 
 main()
 
