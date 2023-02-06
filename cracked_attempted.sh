@@ -35,7 +35,9 @@ TOP_NS=($(awk -F',' '{for (i=1; i<=NF; i++) print $i}' <<< "$4"))
 RESULTS_SORTED=$RDIR/analyze_results_sorted.tsv
 POTFILE_DIR=~/.local/share/hashcat
 TOP_N_PATHS=""
+TOP_N_RULECOUNTS=""
 COMPARISON_PATHS=""
+COMPARISON_RULE_COUNTS=""
 
 sort -k 2n $3 > $RESULTS_SORTED
 echo "Running hashcat with generated rulefiles"
@@ -61,10 +63,12 @@ do
     echo -e "0\t0" > $TOP_N_DATA
     paste $TOP_N_RECOVERED $TOP_N_PROGRESS >> $TOP_N_DATA
     TOP_N_PATHS+="${TOP_N_DATA},"
+    TOP_N_RULECOUNTS+="${i},"
 done
 
 # TOP_N_PATHS is csv separated paths of result files to send to python, strip last comma
 TOP_N_PATHS=$(sed 's/.\{1\}$//' <<< "$TOP_N_PATHS")
+TOP_N_RULECOUNTS=$(sed 's/.\{1\}$//' <<< "$TOP_N_RULECOUNTS")
 
 if [ $# -gt 5 ]; then
     echo "Running hashcat with additional comparison rulefiles"
@@ -90,9 +94,12 @@ if [ $# -gt 5 ]; then
         echo -e "0\t0" > $ADDITIONAL_DATA
         paste $ADDITIONAL_RECOVERED $ADDITIONAL_PROGRESS >> $ADDITIONAL_DATA
         COMPARISON_PATHS+="${ADDITIONAL_DATA},"
+        COMPARISON_RULE_COUNTS+="$(wc -l $RULEFILE | awk '{print $1}'),"
     done
     COMPARISON_PATHS=$(sed 's/.\{1\}$//' <<< $COMPARISON_PATHS)
+    COMPARISON_RULE_COUNTS=$(sed 's/.\{1\}$//' <<< $COMPARISON_RULE_COUNTS)
 fi
 HASHED_FNAME=$(echo $HASHED | rev | cut -d '/' -f 1 | rev)
 WORDS_FNAME=$(echo $WORDS | rev | cut -d '/' -f 1 | rev)
-$PYTHON cracked_attempted.py $TOP_N_PATHS $COMPARISON_PATHS $HASHED_FNAME $WORDS_FNAME
+$PYTHON cracked_attempted.py $TOP_N_PATHS $TOP_N_RULECOUNTS $COMPARISON_PATHS $COMPARISON_RULE_COUNTS $HASHED_FNAME $WORDS_FNAME
+

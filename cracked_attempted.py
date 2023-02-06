@@ -4,19 +4,25 @@ import argparse
 import csv
 import re
 import uuid
+import numpy as np
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("top_n_generated_rules", type=str, help="Comma separated paths of tsv result files for generated rules")
+    parser.add_argument("top_n_rule_counts", type=str, help="Comma separated rule counts")
     parser.add_argument("additional_rulefiles", type=str, help="Comma separated paths of tsv rsult files for extra rulefiles (ex: dive)")
+    parser.add_argument("additional_rule_counts", type=str, help="Comma separated rule counts")
     parser.add_argument("hashed_source", type=str, help="Source of hashes")
     parser.add_argument("words_source", type=str, help="Source of wordlist")
     args = parser.parse_args()
     hashed = args.hashed_source
     words = args.words_source
     top_n_files = args.top_n_generated_rules.split(",")
+    top_n_rule_counts = list(map(lambda x: int(x), args.top_n_rule_counts.split(",")))
     additional_files = args.additional_rulefiles.split(",")
+    additional_rule_counts = list(map(lambda x: int(x), args.additional_rule_counts.split(",")))
     all_files = top_n_files + additional_files
+    all_rule_counts = top_n_rule_counts + additional_rule_counts
     data_map = {}
     fig, ax = plt.subplots()
     idx = 0
@@ -34,6 +40,7 @@ def main():
                 y_vals.append(recovered)
                 x_vals.append(attempted)
         ax.plot(x_vals, y_vals, label=key, color=plt.cm.rainbow(idx/len(all_files)))
+        print(file, "cracked%", 100*np.max(np.array(y_vals))/100000000, "rules", all_rule_counts[idx], "RPP", np.round(all_rule_counts[idx] / np.max(100*np.array(y_vals)/100000000 - 6.450)))
         idx += 1
     ax.legend(fontsize=10)
     ax.set_ylabel("# cracked")

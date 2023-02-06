@@ -197,6 +197,7 @@ void TreeBuilder::build() {
         set<string> added_rules;
         for (auto &queue_entry : chosen) {
             string password = queue_entry.first;
+            float pw_strength = this->get_password_strength(password);
             float parent_score = queue_entry.second->score;
             scores += parent_score;
             unsigned int orig_idx_temp = queue_entry.second->orig_idx;
@@ -274,10 +275,12 @@ void TreeBuilder::build() {
                     not_target_hit_count++;
                 }
                 // try to insert new composite rule
+                float new_pw_strength = this->get_password_strength(string(new_pw));
+                // ensure that we require the pw strength increased in order to act as if we hit a target
                 if (pdp->is_target) {
                     bool new_rule_primitive = false;
                     for (const string& rh : new_rule_histories) {
-                        auto *rdp_comp = new RuleData(0, 1.0f, true);
+                        auto *rdp_comp = new RuleData(0, 0.0f, true);
                         RuleData *rdp_composite_existing = nullptr;
                         int check_rule_composite = raxTryInsert(this->rule_tree, (unsigned char*) rh.c_str(), rh.size()+1, (void*) rdp_comp, (void**) &rdp_composite_existing);
                         if (check_rule_composite == 0) { // composite rule already exists
@@ -286,7 +289,7 @@ void TreeBuilder::build() {
                         }
                         rdp_comp->hit_count++;
                         if (this->using_partial_guessing) {
-                            rdp_comp->hit_strength_sum += this->get_password_strength(string(new_pw));
+                            rdp_comp->hit_strength_sum += new_pw_strength;
                         }
                         if(rdp_comp->hit_count > max_rule_hit_count) {
                             max_rule_hit_count = rdp_comp->hit_count;

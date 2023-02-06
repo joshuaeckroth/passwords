@@ -135,10 +135,10 @@ void initialize_rule_replacements() {
 
     // not equiv, but don't let ] appear anywhere but the end, and [ anywhere but the beginning
     // make result invalid
-    rule_replacements.push_back(pair<regex, string>(".*\\] [^\\]]+ \\].*", ""));
-    rule_replacements.push_back(pair<regex, string>(".*\\[ [^\\[]+ \\[.*", ""));
-    rule_replacements.push_back(pair<regex, string>(".*\\] [^\\]]+$", ""));
-    rule_replacements.push_back(pair<regex, string>("^[^\\[]+ \\[.*", ""));
+    //rule_replacements.push_back(pair<regex, string>(".*\\] [^\\]]+ \\].*", ""));
+    //rule_replacements.push_back(pair<regex, string>(".*\\[ [^\\[]+ \\[.*", ""));
+    //rule_replacements.push_back(pair<regex, string>(".*\\] [^\\]]+$", ""));
+    //rule_replacements.push_back(pair<regex, string>("^[^\\[]+ \\[.*", ""));
 
     // cleanup spaces
     rule_replacements.push_back(pair<regex, string>(" +", " "));
