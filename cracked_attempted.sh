@@ -51,7 +51,7 @@ do
     TOP_N_PROGRESS=$RDIR/hc_status_progress_top_$i.txt
     TOP_N_STARTED=$RDIR/hc_status_started_top_$i.txt
     TOP_N_DATA=$RDIR/hc_data_generated_top_$i.tsv
-    tail -n $i $RESULTS_SORTED | cut -f1 > $TOP_N
+    cat $RESULTS_SORTED | cut -f1 | duprule/target/debug/duprule | tail -n $i > $TOP_N
     if [ ! -e $TOP_N_STATUS ]
     then
         rm -rf $POTFILE_DIR
