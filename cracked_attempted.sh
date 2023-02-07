@@ -51,9 +51,9 @@ do
     TOP_N_PROGRESS=$RDIR/hc_status_progress_top_$i.txt
     TOP_N_STARTED=$RDIR/hc_status_started_top_$i.txt
     TOP_N_DATA=$RDIR/hc_data_generated_top_$i.tsv
-    cat $RESULTS_SORTED | cut -f1 | duprule/target/debug/duprule | tail -n $i > $TOP_N
     if [ ! -e $TOP_N_STATUS ]
     then
+        cat $RESULTS_SORTED | cut -f1 | duprule/target/debug/duprule | tail -n $i > $TOP_N
         rm -rf $POTFILE_DIR
         hashcat -O --status --status-timer=$HC_REPORT_INTERVAL -d $HC_DEVICE -m $HC_HASH -a 0 -r $TOP_N $HASHED $WORDS | grep '\(Recovered\.\.\.\|Progress\.\.\.\)' > $TOP_N_STATUS
     fi

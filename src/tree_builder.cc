@@ -370,7 +370,7 @@ void TreeBuilder::build() {
             analyze_passwords(this->pw_tree_processed);
         }
 
-        if(idx % 5000 == 0) {
+        if(idx % 100 == 0) {
             if(pwqueue.size() > (max_cycles-idx)*choose_pw_cnt) {
                 // remove low-scoring pws
                 std::priority_queue<QueueEntry, std::vector<QueueEntry>, password_score_comparer> pwqueue2;
