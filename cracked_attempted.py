@@ -41,7 +41,7 @@ def main():
                 y_vals.append(recovered)
                 x_vals.append(attempted)
         ax.plot(x_vals, y_vals, label=key, color=plt.cm.rainbow(idx/len(all_files)))
-        rpp = np.round(all_rule_counts[idx] / np.max(100*np.array(y_vals)/100000000 - 6.450))
+        rpp = np.round(all_rule_counts[idx] / np.max(100*np.array(y_vals)/100000000 - 6.33))
         cracked_pct = 100*np.max(np.array(y_vals))/100000000
         print(file, "cracked%", cracked_pct, "rules", all_rule_counts[idx], "RPP", rpp)
         if idx < len(top_n_files):

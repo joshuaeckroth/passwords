@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 d = pd.read_csv("stats.csv")
+d = d[:1000]
 
 fig, ax = plt.subplots()
 ax.plot(d['iteration'], d['seconds'], color="black")
