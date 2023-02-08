@@ -8,6 +8,26 @@ import numpy as np
 import pprint
 pp = pprint.PrettyPrinter(indent=4)
 
+rule_names = {
+        'pantagrule.private.v5.popular.prepended.dedup': 'Pantagrule-popular + Ours',
+        'pantagrule.private.v5.popular': 'Pantagrule-popular',
+        'ortft': 'ORTFT',
+        'OneRuleToRuleThemAll.RULESONLY': 'ORTRTA',
+        'pack-rockyou-100k': 'PACK top-100k',
+        'pack-rockyou-50k': 'PACK top-50k',
+        'pack-rockyou-64': 'PACK top-64',
+        'generated.dedup.10k': 'Ours top-10k',
+        'generated.dedup.50k': 'Ours top-50k',
+        'generated.64': 'Ours top-64',
+        'best64': 'best64',
+        'dive': 'dive',
+        'empty': 'No rules'
+        }
+
+attempted_plot = {'OneRuleToRuleThemAll.RULESONLY': '--',
+                  'pantagrule.private.v5.popular.prepended.dedup': ':',
+                  'generated.64': '-'}
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("top_n_generated_rules", type=str, help="Comma separated paths of tsv result files for generated rules")
@@ -32,6 +52,9 @@ def main():
     for file in all_files:
         search_result = re.search(r"data_(.*)\..*$", file)
         key = search_result.group(1)
+        if key not in rule_names:
+            idx += 1
+            continue
         x_vals = []
         y_vals = []
         with open(file) as tsvfile:
@@ -42,7 +65,8 @@ def main():
                 # ratio = recovered / attempted
                 y_vals.append(recovered)
                 x_vals.append(attempted)
-        ax.plot(x_vals, y_vals, label=key, color=plt.cm.rainbow(idx/len(all_files)))
+        if key in attempted_plot:
+            ax.plot(x_vals, y_vals, attempted_plot[key], label=rule_names[key], color="black")
         rpp = np.round(all_rule_counts[idx] / np.max(100*np.array(y_vals)/100000000 - 6.33))
         cracked_pct = 100*np.max(np.array(y_vals))/100000000
         print(file, "cracked%", cracked_pct, "rules", all_rule_counts[idx], "RPP", rpp)
@@ -62,14 +86,18 @@ def main():
     #ax.add_artist(at)
     fileuuid = str(uuid.uuid1())
     fig.tight_layout()
-    plt.legend(prop={'size':5})
+    #plt.legend(prop={'size':5})
     plt.savefig("cracked_attempted_plot_" + fileuuid + ".pdf", dpi=500)
 
     pp.pprint(rpp_map)
     fig, ax = plt.subplots()
     for key in rpp_map['comparison']:
-        ax.plot(rpp_map['comparison'][key]['rpp'], rpp_map['comparison'][key]['cracked%'], 'o')
-        ax.annotate(key, xy=(rpp_map['comparison'][key]['rpp'], rpp_map['comparison'][key]['cracked%']), textcoords='data')
+        if key not in rule_names:
+            continue
+        if key == 'empty':
+            continue
+        ax.plot(rpp_map['comparison'][key]['rpp'], rpp_map['comparison'][key]['cracked%'], 'o', color="gray")
+        ax.annotate(rule_names[key], xy=(rpp_map['comparison'][key]['rpp']+15, rpp_map['comparison'][key]['cracked%']+0.5), textcoords='data')
     ax.plot(list(map(lambda x: x['rpp'], rpp_map['top_n'])), list(map(lambda x: x['cracked%'], rpp_map['top_n'])), 'o')
     fig.tight_layout()
     plt.savefig("cracked_attempted_rpp_plot_" + fileuuid + ".pdf", dpi=300)
