@@ -53,9 +53,10 @@ do
     TOP_N_DATA=$RDIR/hc_data_generated_top_$i.tsv
     if [ ! -e $TOP_N_STATUS ]
     then
-        cat $RESULTS_SORTED | cut -f1 | duprule/target/debug/duprule | tail -n $i > $TOP_N
+        echo ":" > $TOP_N
+        cat $RESULTS_SORTED | cut -f1 | duprule/target/debug/duprule | tail -n $i >> $TOP_N
         rm -rf $POTFILE_DIR
-        hashcat -O --status --status-timer=$HC_REPORT_INTERVAL -d $HC_DEVICE -m $HC_HASH -a 0 -r $TOP_N $HASHED $WORDS | grep '\(Recovered\.\.\.\|Progress\.\.\.\)' > $TOP_N_STATUS
+        hashcat --session=$BASHPID --potfile-disable -O --status --status-timer=$HC_REPORT_INTERVAL -d $HC_DEVICE -m $HC_HASH -a 0 -r $TOP_N $HASHED $WORDS | grep '\(Recovered\.\.\.\|Progress\.\.\.\)' > $TOP_N_STATUS
     fi
     cat $TOP_N_STATUS | grep -Eo 'Recovered\.+: ([0-9]+)' | awk '{print $2}' > $TOP_N_RECOVERED
     cat $TOP_N_STATUS | grep -Eo 'Progress\.+: ([0-9]+)' | awk '{print $2}' > $TOP_N_PROGRESS
@@ -86,7 +87,7 @@ if [ $# -gt 5 ]; then
         if [ ! -e $ADDITIONAL_STATUS ]
         then
             rm -rf $POTFILE_DIR
-            hashcat -O --status --status-timer=$HC_REPORT_INTERVAL -d $HC_DEVICE -m $HC_HASH -a 0 -r $RULEFILE $HASHED $WORDS | grep '\(Recovered\.\.\.\|Progress\.\.\.\)' > $ADDITIONAL_STATUS
+            hashcat --session=$BASHPID --potfile-disable -O --status --status-timer=$HC_REPORT_INTERVAL -d $HC_DEVICE -m $HC_HASH -a 0 -r $RULEFILE $HASHED $WORDS | grep '\(Recovered\.\.\.\|Progress\.\.\.\)' > $ADDITIONAL_STATUS
         fi
         cat $ADDITIONAL_STATUS | grep -Eo 'Recovered\.+: ([0-9]+)' | awk '{print $2}' > $ADDITIONAL_RECOVERED
         cat $ADDITIONAL_STATUS | grep -Eo 'Progress\.+: ([0-9]+)' | awk '{print $2}' > $ADDITIONAL_PROGRESS
