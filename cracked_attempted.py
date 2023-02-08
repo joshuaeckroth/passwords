@@ -11,6 +11,7 @@ pp = pprint.PrettyPrinter(indent=4)
 rule_names = {
         'pantagrule.private.v5.popular.prepended.dedup': 'Pantagrule-popular + Ours',
         'pantagrule.private.v5.popular': 'Pantagrule-popular',
+        'pantagrule.one.royce': 'Pantagrule-one-royce',
         'ortft': 'ORTFT',
         'OneRuleToRuleThemAll.RULESONLY': 'ORTRTA',
         'pack-rockyou-100k': 'PACK top-100k',
@@ -57,23 +58,26 @@ def main():
             continue
         x_vals = []
         y_vals = []
-        with open(file) as tsvfile:
-            reader = csv.reader(tsvfile, delimiter='\t')
-            for row in reader:
-                recovered = int(row[0])
-                attempted = int(row[1])
-                # ratio = recovered / attempted
-                y_vals.append(recovered)
-                x_vals.append(attempted)
-        if key in attempted_plot:
-            ax.plot(x_vals, y_vals, attempted_plot[key], label=rule_names[key], color="black")
-        rpp = np.round(all_rule_counts[idx] / np.max(100*np.array(y_vals)/100000000 - 6.33))
-        cracked_pct = 100*np.max(np.array(y_vals))/100000000
-        print(file, "cracked%", cracked_pct, "rules", all_rule_counts[idx], "RPP", rpp)
-        if idx < len(top_n_files):
-            rpp_map['top_n'].append({'cracked%': cracked_pct, 'rpp': rpp})
-        else:
-            rpp_map['comparison'][key] = {'cracked%': cracked_pct, 'rpp': rpp}
+        try:
+            with open(file) as tsvfile:
+                reader = csv.reader(tsvfile, delimiter='\t')
+                for row in reader:
+                    recovered = int(row[0])
+                    attempted = int(row[1])
+                    # ratio = recovered / attempted
+                    y_vals.append(recovered)
+                    x_vals.append(attempted)
+            if key in attempted_plot:
+                ax.plot(x_vals, y_vals, attempted_plot[key], label=rule_names[key], color="black")
+            rpp = np.round(all_rule_counts[idx] / np.max(100*np.array(y_vals)/100000000 - 6.33))
+            cracked_pct = 100*np.max(np.array(y_vals))/100000000
+            print(file, "cracked%", cracked_pct, "rules", all_rule_counts[idx], "RPP", rpp)
+            if idx < len(top_n_files):
+                rpp_map['top_n'].append({'cracked%': cracked_pct, 'rpp': rpp})
+            else:
+                rpp_map['comparison'][key] = {'cracked%': cracked_pct, 'rpp': rpp}
+        except:
+            pass
         idx += 1
     ax.legend(fontsize=10)
     ax.set_ylabel("# cracked")
@@ -91,6 +95,7 @@ def main():
 
     pp.pprint(rpp_map)
     fig, ax = plt.subplots()
+    rpp_map['comparison']['ortft'] = {'cracked%': 69.92, 'rpp': 1588}
     for key in rpp_map['comparison']:
         if key not in rule_names:
             continue
@@ -99,6 +104,8 @@ def main():
         ax.plot(rpp_map['comparison'][key]['rpp'], rpp_map['comparison'][key]['cracked%'], 'o', color="gray")
         ax.annotate(rule_names[key], xy=(rpp_map['comparison'][key]['rpp']+15, rpp_map['comparison'][key]['cracked%']+0.5), textcoords='data')
     ax.plot(list(map(lambda x: x['rpp'], rpp_map['top_n'])), list(map(lambda x: x['cracked%'], rpp_map['top_n'])), 'o')
+    ax.set_ylabel("# cracked")
+    ax.set_xlabel("RPP")
     fig.tight_layout()
     plt.savefig("cracked_attempted_rpp_plot_" + fileuuid + ".pdf", dpi=300)
 
