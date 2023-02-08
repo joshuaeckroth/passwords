@@ -5,6 +5,8 @@ import csv
 import re
 import uuid
 import numpy as np
+import pprint
+pp = pprint.PrettyPrinter(indent=4)
 
 def main():
     parser = argparse.ArgumentParser()
@@ -52,17 +54,18 @@ def main():
     ax.legend(fontsize=10)
     ax.set_ylabel("# cracked")
     ax.set_xlabel("# attempted")
-    #ax.set_xscale("log")
+    #ax.set_yscale("log")
+    ax.set_xscale("log")
     ax.set_title("cracked / attempted by sets of rules")
     #at = AnchoredText("Hashes: " + hashed + "\n" + "Wordlist: " + words, prop=dict(size=10), frameon=True, loc='lower right')
     #at.patch.set_boxstyle("round,pad=0.,rounding_size=0.2")
     #ax.add_artist(at)
     fileuuid = str(uuid.uuid1())
     fig.tight_layout()
-    plt.savefig("cracked_attempted_plot_" + fileuuid + ".png", dpi=300)
-    plt.savefig("cracked_attempted_plot_" + fileuuid + ".pdf", dpi=300)
+    plt.legend(prop={'size':5})
+    plt.savefig("cracked_attempted_plot_" + fileuuid + ".pdf", dpi=500)
 
-    print(rpp_map)
+    pp.pprint(rpp_map)
     fig, ax = plt.subplots()
     for key in rpp_map['comparison']:
         ax.plot(rpp_map['comparison'][key]['rpp'], rpp_map['comparison'][key]['cracked%'], 'o')
