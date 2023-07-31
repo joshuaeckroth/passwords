@@ -3,6 +3,9 @@
   <component name="VcsDirectoryMappings">
     <mapping directory="$PROJECT_DIR$" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/duprule" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/pack" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/pack-py2" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/pack-py2/pyenchant" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/rules/pantagrule" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/tmp/libneo4j-client" vcs="" />
     <mapping directory="$PROJECT_DIR$/tmp/libneo4j-client-v4" vcs="" />
