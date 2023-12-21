@@ -10,4 +10,5 @@
 #cd ..
 git clone git@github.com:hashcat/hashcat.git
 cd hashcat && make obj/combined.NATIVE.a
+cd ..
 git clone https://github.com/antirez/rax.git
