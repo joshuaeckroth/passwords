@@ -21,7 +21,6 @@ RADIX_FLAGS := -I $(RADIX_ROOT)
 
 # OPENSSL_FLAGS = $(shell PKG_CONFIG_PATH=/opt/homebrew/opt/openssl@1.1/lib/pkgconfig/ pkg-config --cflags --libs)
 
-NEO4J_FLAGS = $(shell PKG_CONFIG_PATH=/opt/homebrew/opt/openssl@1.1/lib/pkgconfig:external/libneo4j-client-v4-install/lib/pkgconfig/ pkg-config --cflags --libs neo4j-client)
 HC_ARCHIVE = external/hashcat/obj/combined.NATIVE.a
 
 GENGRAPH_SRCS = src/rule.cc src/util.cc src/rule_loader.cc src/password_loader.cc src/password_node.cc src/graph.cc src/password_node_hash.cc src/graph_builder.cc src/graph_db_writer.cc src/gengraph.cc
@@ -56,10 +55,10 @@ src/graph.o: src/graph.cc src/graph.h src/password_node.h src/password_node_hash
 	$(CXX) $(CXXFLAGS) $(CFLAGS_NATIVE_PW) $(LFLAGS_NATIVE) -c src/graph.cc -o src/graph.o
 
 src/graph_builder.o: src/graph_builder.cc src/graph_builder.h src/graph.h src/password_node.h src/rule.h
-	$(CXX) $(CXXFLAGS) $(CFLAGS_NATIVE_PW) $(LFLAGS_NATIVE) $(NEO4J_FLAGS) -c src/graph_builder.cc -o src/graph_builder.o
+	$(CXX) $(CXXFLAGS) $(CFLAGS_NATIVE_PW) $(LFLAGS_NATIVE) -c src/graph_builder.cc -o src/graph_builder.o
 
 src/graph_db_writer.o: src/graph_db_writer.cc src/graph_db_writer.h src/rule.h src/util.h src/password_node.h src/graph.h
-	$(CXX) $(CXXFLAGS) $(CFLAGS_NATIVE_PW) $(LFLAGS_NATIVE) $(NEO4J_FLAGS) -c src/graph_db_writer.cc -o src/graph_db_writer.o
+	$(CXX) $(CXXFLAGS) $(CFLAGS_NATIVE_PW) $(LFLAGS_NATIVE) -c src/graph_db_writer.cc -o src/graph_db_writer.o
 
 src/rule_loader.o: src/rule_loader.cc src/rule_loader.h src/rule.h
 	$(CXX) $(CXXFLAGS) $(CFLAGS_NATIVE_PW) -c src/rule_loader.cc -o src/rule_loader.o
@@ -68,16 +67,16 @@ src/password_loader.o: src/password_loader.cc src/password_loader.h
 	$(CXX) $(CXXFLAGS) $(CFLAGS_NATIVE_PW) -c src/password_loader.cc -o src/password_loader.o
 
 src/util.o: src/util.cc src/util.h
-	$(CXX) $(CXXFLAGS) $(CFLAGS_NATIVE_PW) $(LFLAGS_NATIVE) $(NEO4J_FLAGS) -c src/util.cc -o src/util.o
+	$(CXX) $(CXXFLAGS) $(CFLAGS_NATIVE_PW) $(LFLAGS_NATIVE) -c src/util.cc -o src/util.o
 
 src/genetic.o: src/genetic.cc src/genetic.h
-	$(CXX) $(CXXFLAGS) $(CFLAGS_NATIVE_PW) $(LFLAGS_NATIVE) $(NEO4J_FLAGS) -c src/genetic.cc -o src/genetic.o
+	$(CXX) $(CXXFLAGS) $(CFLAGS_NATIVE_PW) $(LFLAGS_NATIVE) -c src/genetic.cc -o src/genetic.o
 
 src/gengraph.o: src/gengraph.cc src/rule.h src/rule_loader.h src/password_loader.h src/util.h src/password_node.h src/graph.h src/graph_builder.h src/graph_db_writer.h src/genetic.h
-	$(CXX) $(CXXFLAGS) $(CFLAGS_NATIVE_PW) $(LFLAGS_NATIVE) $(NEO4J_FLAGS) -c src/gengraph.cc -o src/gengraph.o
+	$(CXX) $(CXXFLAGS) $(CFLAGS_NATIVE_PW) $(LFLAGS_NATIVE) -c src/gengraph.cc -o src/gengraph.o
 
 gengraph: $(GENGRAPH_OBJS) $(HC_ARCHIVE)
-	$(CXX) $(CXXFLAGS) $(CFLAGS_NATIVE_PW) $(LFLAGS_NATIVE) $(NEO4J_FLAGS) -o gengraph $(GENGRAPH_OBJS) $(HC_ARCHIVE)
+	$(CXX) $(CXXFLAGS) $(CFLAGS_NATIVE_PW) $(LFLAGS_NATIVE) -o gengraph $(GENGRAPH_OBJS) $(HC_ARCHIVE)
 
 src/rax.o: $(RADIX_ROOT)/rax.h
 	$(CC) -c $(RADIX_ROOT)/rax.c -o src/rax.o
@@ -95,13 +94,13 @@ src/analyze_tree.o: src/analyze_tree.cc $(RADIX_ROOT)/rax.h src/analyze_tree.h s
 	$(CXX) $(CXXFLAGS) $(CFLAGS_NATIVE_PW) $(RADIX_FLAGS) $(LFLAGS_NATIVE) -c src/analyze_tree.cc -o src/analyze_tree.o
 
 src/gentree.o: src/gentree.cc src/rule.h src/password_loader.h src/rule_loader.h src/util.h src/password_data.h src/tree_builder.h src/analyze_tree.h src/partial_guessing.h $(RADIX_ROOT)/rax.h src/genetic.h
-	$(CXX) $(CXXFLAGS) $(CFLAGS_NATIVE_PW) $(LFLAGS_NATIVE) $(RADIX_FLAGS) $(NEO4J_FLAGS) -c src/gentree.cc -o src/gentree.o 
+	$(CXX) $(CXXFLAGS) $(CFLAGS_NATIVE_PW) $(LFLAGS_NATIVE) $(RADIX_FLAGS) -c src/gentree.cc -o src/gentree.o
 
 gentree: $(GENTREE_OBJS) $(HC_ARCHIVE) 
-	$(CXX) $(CXXFLAGS) $(CFLAGS_NATIVE_PW) $(LFLAGS_NATIVE) $(RADIX_FLAGS) $(NEO4J_FLAGS) -o gentree $(GENTREE_OBJS) $(HC_ARCHIVE)
+	$(CXX) $(CXXFLAGS) $(CFLAGS_NATIVE_PW) $(LFLAGS_NATIVE) $(RADIX_FLAGS) -o gentree $(GENTREE_OBJS) $(HC_ARCHIVE)
 
 rule_regex_exp: src/rule_regex_exp.cc src/rule.h src/rule_loader.h src/rule.o src/rule_loader.o $(HC_ARCHIVE) $(RADIX_ROOT)/rax.h src/rax.o
 	$(CXX) $(CXXFLAGS) $(CFLAGS_NATIVE_PW) $(LFLAGS_NATIVE) $(RADIX_FLAGS) src/rule_regex_exp.cc -o rule_regex_exp src/rule.o src/rule_loader.o $(HC_ARCHIVE) src/rax.o
 
 genetic: $(GENETIC_OBJS) $(HC_ARCHIVE)
-	$(CXX) $(CXXFLAGS) $(CFLAGS_NATIVE_PW) $(LFLAGS_NATIVE) $(RADIX_FLAGS) $(NEO4J_FLAGS) -o genetic $(GENETIC_OBJS) $(HC_ARCHIVE)
+	$(CXX) $(CXXFLAGS) $(CFLAGS_NATIVE_PW) $(LFLAGS_NATIVE) $(RADIX_FLAGS) -o genetic $(GENETIC_OBJS) $(HC_ARCHIVE)

@@ -17,7 +17,7 @@
 
 void md5_bytes_to_hex(const unsigned char*, char*);
 std::string md5(const char*);
-std::string sha1(const char*);
+//std::string sha1(const char*);
 
 template<typename T>
 void print_bits(T *data) {
