@@ -6,10 +6,10 @@
 #include <iomanip>
 #include "util.h"
 
-extern "C" {
-#include <openssl/md5.h>
-#include <openssl/sha.h>
-}
+//extern "C" {
+//#include <openssl/md5.h>
+//#include <openssl/sha.h>
+//}
 
 using std::cout, std::endl;
 
@@ -31,7 +31,7 @@ void md5_bytes_to_hex(const unsigned char *md5, char *result) {
 //    return ss.str();
 //}
 
-std::string md5(const char *input) {
+//std::string md5(const char *input) {
 /*
     unsigned char md5result[16];
     MD5((const unsigned char*)input, strlen(input), md5result);
@@ -41,6 +41,6 @@ std::string md5(const char *input) {
     free(result);
     return res_str;
 */
-    return "";
-}
+//    return "";
+//}
 
