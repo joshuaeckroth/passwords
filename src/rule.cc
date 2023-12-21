@@ -24,6 +24,17 @@ Rule::Rule(const char* s) : raw(string(s)) {
     clean_rule = regex_replace(regex_replace(raw, regex("\""), "QUOTE"), regex("\t"), "\\t");
 }
 
+Rule::Rule(const Rule& r) : raw(r.raw), clean_rule(r.clean_rule), weight(r.weight) {}
+
+Rule::Rule(const Rule&& r) : raw(std::move(r.raw)), clean_rule(std::move(r.clean_rule)), weight(r.weight) {}
+
+Rule& Rule::operator=(const Rule &r) {
+    this->raw = r.raw;
+    this->clean_rule = r.clean_rule;
+    this->weight = r.weight;
+    return *this;
+}
+
 const string& Rule::get_rule_raw() const {
     return this->raw;
 }

@@ -7,12 +7,14 @@
 
 class Rule {
     private:
-        const std::string raw;
+        std::string raw;
         std::string clean_rule;
         float weight = 1.0;
     public:
         explicit Rule(std::string);
         explicit Rule(const char*);
+        Rule(const Rule&);
+        Rule(const Rule&&);
         const std::string& get_rule_raw() const;
         const std::string& get_rule_clean() const;
         std::string apply_rule(const std::string&) const;
@@ -21,6 +23,7 @@ class Rule {
         void reset_weight();
         bool operator<(const Rule &r) const;
         friend std::ostream& operator<<(std::ostream &os, const Rule &r);
+        Rule& operator=(const Rule &r);
 };
 
 void initialize_rule_replacements();
