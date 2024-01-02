@@ -16,7 +16,6 @@ public:
     void run(int);
 
 private:
-    void initialize_population();
     std::pair<Rule, Rule> crossover(const std::pair<Rule, Rule>&);
     Rule mutate(const Rule&);
     double evaluate_fitness(const Rule&);

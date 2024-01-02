@@ -13,7 +13,6 @@ Genetic::~Genetic() {
 }
 
 void Genetic::run(int num_generations) {
-    initialize_population();
     for (int i = 0; i < num_generations; i++) {
         cout << "generation " << i << endl;
         pair<Rule, Rule> parents = select_parents();
@@ -34,10 +33,6 @@ void Genetic::run(int num_generations) {
         population.pop_back(); // remove two lowest-fitness rules
         population.pop_back();
     }
-}
-
-void Genetic::initialize_population() {
-    // start with primitives and a rule list?
 }
 
 pair<Rule, Rule> Genetic::select_parents() {
