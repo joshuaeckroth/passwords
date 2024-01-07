@@ -228,12 +228,9 @@ vector<string> Rule::get_primitives() {
 
 vector<string> Rule::tokenize() {
     vector<string> tokens;
-    cout << "trying to compile regex: " << Rule::tokenize_regex << endl;
-    std::regex re(Rule::tokenize_regex);
-    cout << "compiled" << endl;
     std::smatch matches;
     string s = this->clean_rule;;
-    for (std::smatch sm; regex_search(s, sm, re);) {
+    for (std::smatch sm; regex_search(s, sm, Rule::tokenize_regex);) {
         tokens.push_back(sm.str());
         s = sm.suffix();
     }
