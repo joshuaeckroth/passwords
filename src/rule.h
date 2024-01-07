@@ -15,6 +15,8 @@ class Rule {
         explicit Rule(const char*);
         Rule(const Rule&);
         Rule(const Rule&&);
+        std::vector<std::string> get_primitives();
+        static Rule join_primitives(std::vector<std::string>);
         const std::string& get_rule_raw() const;
         const std::string& get_rule_clean() const;
         std::string apply_rule(const std::string&) const;
