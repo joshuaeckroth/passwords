@@ -1,4 +1,5 @@
 #include <string>
+#include <regex>
 #include <iostream>
 #include <utility>
 #include <vector>
@@ -223,6 +224,20 @@ vector<string> Rule::get_primitives() {
     }
     primitives.push_back(this->clean_rule.substr(start, this->clean_rule.size() - start));
     return primitives;
+}
+
+vector<string> Rule::tokenize() {
+    vector<string> tokens;
+    cout << "trying to compile regex: " << Rule::tokenize_regex << endl;
+    std::regex re(Rule::tokenize_regex);
+    cout << "compiled" << endl;
+    std::smatch matches;
+    string s = this->clean_rule;;
+    for (std::smatch sm; regex_search(s, sm, re);) {
+        tokens.push_back(sm.str());
+        s = sm.suffix();
+    }
+    return tokens;
 }
 
 Rule Rule::join_primitives(vector<string> primitives) {
