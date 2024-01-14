@@ -4,7 +4,7 @@
 #include <random>
 using namespace std;
 
-Genetic::Genetic(vector<Rule> &rules) : population(rules), rand_generator(rd()) {}
+Genetic::Genetic(vector<Rule> &rules, vector<string> *target_passwords) : population(rules), passwords(target_passwords), rand_generator(rd()) {}
 
 Genetic::~Genetic() {
 }
@@ -81,7 +81,43 @@ Rule Genetic::mutate(const Rule &rule) {
     return Rule(rule_str);
 }
 
-double Genetic::evaluate_fitness(const Rule &rule) {
-    // run against a set of passwords and see how many it cracks
-    return 0.0;
+// TODO: don't treat as a string; use actual primitives for mutation
+Rule Genetic::mutate(const Rule &rule) {
+    string rule_str = rule.get_rule_clean();
+    int mutation_point = rand() % rule_str.size();
+    rule_str[mutation_point] = 'a' + (rand() % 26);
+    return Rule(rule_str);
 }
+
+// run against a set of passwords and see how many it cracks
+double Genetic::evaluate_fitness(const Rule &rule) {
+    //tree builder for passwords
+
+    // transform a password (passwords set in constructor)
+    for (const string& password : passwords) {
+    	//reset score
+    	float score = 0.0;
+	    //apply rule
+    	new_pw = apply_rule(rule, password);
+        cout << "New password": << new_pw << endl;
+
+		//check password set for hits with the transformed password
+		for (const string& target : passwords) {
+            	if (target == new_pw) {
+	        	score+=1.0;
+	    		}
+        }
+    }
+    return score;
+}
+/*double Genetic::evaluate_fitness(const Rule &rule, const vector<string> *target_passwords) {
+    // run against a set of passwords and see how many it cracks
+	this->targets = target_passwords;
+	//loop through passwords
+	for(size_t idx = 0; idx < target_passwords->size(); idx++) {
+        	string password = target_passwords->at(idx);
+		//apply rule to password, then check against passwords
+		char *new_pw = this->apply_rule(rule, password);
+	}
+    return hit_count;
+}*/
