@@ -13,8 +13,7 @@ class Rule {
         std::string clean_rule;
         float weight = 1.0;
         std::vector<std::string> tokens;
-        // TODO: regex fails for this rule: "} } -O O12" returns },},O12 but should return },},-O,O12
-        inline static const std::string tokenize_regex_str = R"((\:|l|u|c|C|t|T[\dA-Z]|r|d|p[\dA-Z]{2}|f|\{|\}|\$[\w!@#$%^&*()_+=\-.,~`{}[\]|\\:;"'<>?/]|\^[\w!@#$%^&*()_+=\-.,~`{}[\]|\\:;"'<>?/]|\$[\w!@#$%^&*()_+=\-.,~`{}[\]|\\:;"'<>?/]|\[|\]|D[\dA-Z]|x[\dA-Z]{2}|O[\dA-Z]{2}|i[\dA-Z][\w!@#$%^&*()_+=\-.,~`{}[\]|\\:;"'<>?/]|o[\dA-Z][\w!@#$%^&*()_+=\-.,~`{}[\]|\\:;"'<>?/]|'[\dA-Z]|s[\w!@#$%^&*()_+=\-.,~`{}[\]|\\:;"'<>?/]{2}|@[\w!@#$%^&*()_+=\-.,~`{}[\]|\\:;"'<>?/]|z[\dA-Z]|Z[\dA-Z]|q)+?)";
+        inline static const std::string tokenize_regex_str = R"((\:|l|u|c|C|t|T[\dA-Z]|r|d|p[\dA-Z]{2}|f|\{|\}|\$[\w!@#$%^&*()_+=\-.,~`{}[\]|\\:;"'<>?/]|\^[\w!@#$%^&*()_+=\-.,~`{}[\]|\\:;"'<>?/]|\$[\w!@#$%^&*()_+=\-.,~`{}[\]|\\:;"'<>?/]|\[|\]|D[\dA-Z]|x[\dA-Z]{2}|O[\dA-Z]{2}|i[\dA-Z][\w!@#$%^&*()_+=\-.,~`{}[\]|\\:;"'<>?/]|o[\dA-Z][\w!@#$%^&*()_+=\-.,~`{}[\]|\\:;"'<>?/]|'[\dA-Z]|s[\w!@#$%^&*()_+=\-.,~`{}[\]|\\:;"'<>?/]{2}|@[\w!@#$%^&*()_+=\-.,~`{}[\]|\\:;"'<>?/]|z[\dA-Z]|Z[\dA-Z]|q|k|K|\*[\dA-Z]{2}|L[\dA-Z]|R[\dA-Z]|\+[\dA-Z]|\-[\dA-Z]|\.[\dA-Z]|\,[\dA-Z]|y[\dA-Z]|Y[\dA-Z]|E|e[\w!@#$%^&*()_+=\-.,~`{}[\]|\\:;"'<>?/]|3[\dA-Z][\w!@#$%^&*()_+=\-.,~`{}[\]|\\:;"'<>?/])+?)";
         inline static const std::regex tokenize_regex{Rule::tokenize_regex_str};
         std::vector<std::string> tokenize();
     public:
