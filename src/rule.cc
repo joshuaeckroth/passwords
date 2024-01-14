@@ -19,15 +19,21 @@ using boost::regex, boost::regex_replace, boost::smatch;
 
 Rule::Rule(string s) : raw(std::move(s)) {
     clean_rule = regex_replace(regex_replace(raw, regex("\""), "QUOTE"), regex("\t"), "\\t");
+    tokens = tokenize();
 }
 
 Rule::Rule(const char* s) : raw(string(s)) {
     clean_rule = regex_replace(regex_replace(raw, regex("\""), "QUOTE"), regex("\t"), "\\t");
+    tokens = tokenize();
 }
 
-Rule::Rule(const Rule& r) : raw(r.raw), clean_rule(r.clean_rule), weight(r.weight) {}
+Rule::Rule(const Rule& r) : raw(r.raw), clean_rule(r.clean_rule), weight(r.weight) {
+    tokens = tokenize();
+}
 
-Rule::Rule(const Rule&& r) : raw(std::move(r.raw)), clean_rule(std::move(r.clean_rule)), weight(r.weight) {}
+Rule::Rule(const Rule&& r) : raw(std::move(r.raw)), clean_rule(std::move(r.clean_rule)), weight(r.weight) {
+    tokens = tokenize();
+}
 
 Rule& Rule::operator=(const Rule &r) {
     this->raw = r.raw;
@@ -211,30 +217,34 @@ bool check_rule_position_validity(const string& rule, const string& password) {
     return true;
 }
 
-vector<string> Rule::get_primitives() {
-    vector<string> primitives;
-    char delim = ' ';
-    size_t start = 0;
-    for (size_t idx = 0; idx < this->clean_rule.size(); idx++) {
-        if (this->clean_rule[idx] == ' ') {
-            string sub = this->clean_rule.substr(start, idx - start);
-            primitives.push_back(sub);
-            start = idx + 1;
-        }
-    }
-    primitives.push_back(this->clean_rule.substr(start, this->clean_rule.size() - start));
-    return primitives;
-}
+//vector<string> Rule::get_primitives() {
+//    vector<string> primitives;
+//    char delim = ' ';
+//    size_t start = 0;
+//    for (size_t idx = 0; idx < this->clean_rule.size(); idx++) {
+//        if (this->clean_rule[idx] == ' ') {
+//            string sub = this->clean_rule.substr(start, idx - start);
+//            primitives.push_back(sub);
+//            start = idx + 1;
+//        }
+//    }
+//    primitives.push_back(this->clean_rule.substr(start, this->clean_rule.size() - start));
+//    return primitives;
+//}
 
 vector<string> Rule::tokenize() {
-    vector<string> tokens;
+    vector<string> local_tokens;
     std::smatch matches;
     string s = this->clean_rule;;
     for (std::smatch sm; regex_search(s, sm, Rule::tokenize_regex);) {
-        tokens.push_back(sm.str());
+        local_tokens.push_back(sm.str());
         s = sm.suffix();
     }
-    return tokens;
+    return local_tokens;
+}
+
+const vector<string>& Rule::get_tokens() const {
+    return this->tokens;
 }
 
 Rule Rule::join_primitives(vector<string> primitives) {
