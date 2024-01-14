@@ -217,20 +217,20 @@ bool check_rule_position_validity(const string& rule, const string& password) {
     return true;
 }
 
-//vector<string> Rule::get_primitives() {
-//    vector<string> primitives;
-//    char delim = ' ';
-//    size_t start = 0;
-//    for (size_t idx = 0; idx < this->clean_rule.size(); idx++) {
-//        if (this->clean_rule[idx] == ' ') {
-//            string sub = this->clean_rule.substr(start, idx - start);
-//            primitives.push_back(sub);
-//            start = idx + 1;
-//        }
-//    }
-//    primitives.push_back(this->clean_rule.substr(start, this->clean_rule.size() - start));
-//    return primitives;
-//}
+vector<string> Rule::get_primitives() const {
+    vector<string> primitives;
+    char delim = ' ';
+    size_t start = 0;
+    for (size_t idx = 0; idx < this->clean_rule.size(); idx++) {
+        if (this->clean_rule[idx] == ' ') {
+            string sub = this->clean_rule.substr(start, idx - start);
+            primitives.push_back(sub);
+            start = idx + 1;
+        }
+    }
+    primitives.push_back(this->clean_rule.substr(start, this->clean_rule.size() - start));
+    return primitives;
+}
 
 vector<string> Rule::tokenize() {
     vector<string> local_tokens;
@@ -249,8 +249,9 @@ const vector<string>& Rule::get_tokens() const {
 
 Rule Rule::join_primitives(vector<string> primitives) {
     string full_rule_str = "";
-    for (auto primitive : primitives) {
-        full_rule_str += (" " + primitive);
+    for (size_t idx = 0; idx < primitives.size(); idx++) {
+        string primitive = primitives[idx];
+        full_rule_str += (((idx > 0) ? " " : "") + primitive);
     }
     return Rule(full_rule_str);
 }

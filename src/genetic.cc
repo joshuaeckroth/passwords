@@ -4,7 +4,7 @@
 #include <random>
 using namespace std;
 
-Genetic::Genetic(vector<Rule> &rules, vector<string> *target_passwords) : population(rules), passwords(target_passwords), rand_generator(rd()) {}
+Genetic::Genetic(vector<Rule> &rules, vector<string> &primitives, vector<string> *target_passwords) : population(rules), primitives(primitives), target_passwords(target_passwords), rand_generator(rd()) {}
 
 Genetic::~Genetic() {
 }
@@ -17,7 +17,7 @@ void Genetic::run(int num_generations) {
         vector<Rule> children = crossover(parents);
         for(Rule child: children) {
             cout << "child: " << child.get_rule_clean() << endl;
-            mutate(child);
+//            mutate(child);
             cout << "mutated child: " << child.get_rule_clean() << endl;
             child.reset_weight();
             population.push_back(child);
@@ -73,12 +73,35 @@ vector<Rule> Genetic::crossover(const pair<Rule, Rule>& parents) {
     return {child_rule_a, child_rule_b, child_rule_c, child_rule_d, child_rule_e, child_rule_f};
 }
 
-// TODO: don't treat as a string; use actual primitives for mutation
-Rule Genetic::mutate(const Rule &rule) {
-    string rule_str = rule.get_rule_clean();
-    int mutation_point = rand() % rule_str.size();
-    rule_str[mutation_point] = 'a' + (rand() % 26);
-    return Rule(rule_str);
+Rule Genetic::mutate(const Rule &rule, MutationType type) {
+    auto primitives = rule.get_primitives();
+    size_t prim_count = primitives.size();
+    std::random_device dev;
+    std::mt19937 rng(dev());
+    typedef std::uniform_int_distribution<std::mt19937::result_type> dtype;
+    dtype dist(0, prim_count - ((type == INSERT) ? 0 : 1));
+    size_t idx = (size_t) dist(rng);
+    auto it = primitives.begin() + idx;
+    string primitive = "";
+    if (type == INSERT || type == SUBSTITUTE) {
+        dtype prim_dist(0, this->primitives.size() - 1);
+        primitive = this->primitives[prim_dist(rng)];
+    }
+    switch (type) {
+        case INSERT:
+            primitives.insert(it, primitive);
+            break;
+        case DELETE:
+            primitives.erase(it);
+            break;
+        case SUBSTITUTE:
+            primitives[idx] = primitive;
+            break;
+        case DUPLICATE:
+            primitives.insert(it, primitives[idx]);
+            break;
+    }
+    return Rule::join_primitives(primitives);
 }
 
 // TODO: don't treat as a string; use actual primitives for mutation
@@ -94,7 +117,7 @@ double Genetic::evaluate_fitness(const Rule &rule) {
     //tree builder for passwords
 
     // transform a password (passwords set in constructor)
-    for (const string& password : passwords) {
+    for (const string& password : target_passwords) {
     	//reset score
     	float score = 0.0;
 	    //apply rule
@@ -102,7 +125,7 @@ double Genetic::evaluate_fitness(const Rule &rule) {
         cout << "New password": << new_pw << endl;
 
 		//check password set for hits with the transformed password
-		for (const string& target : passwords) {
+		for (const string& target : target_passwords) {
             	if (target == new_pw) {
 	        	score+=1.0;
 	    		}
