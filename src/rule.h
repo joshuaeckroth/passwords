@@ -16,7 +16,7 @@ class Rule {
         explicit Rule(const char*);
         Rule(const Rule&);
         Rule(const Rule&&);
-        std::vector<std::string> get_primitives();
+        std::vector<std::string> get_primitives() const;
         std::vector<std::string> tokenize();
         static Rule join_primitives(std::vector<std::string>);
         inline static const std::string tokenize_regex_str = R"((\:|l|u|c|C|t|T[\dA-Z]|r|d|p[\dA-Z]{2}|f|\{|\}|\$[\w!@#$%^&*()_+=\-.,~`{}[\]|\\:;"'<>?/]|\^[\w!@#$%^&*()_+=\-.,~`{}[\]|\\:;"'<>?/]|\$[\w!@#$%^&*()_+=\-.,~`{}[\]|\\:;"'<>?/]|\[|\]|D[\dA-Z]|x[\dA-Z]{2}|O[\dA-Z]{2}|i[\dA-Z][\w!@#$%^&*()_+=\-.,~`{}[\]|\\:;"'<>?/]|o[\dA-Z][\w!@#$%^&*()_+=\-.,~`{}[\]|\\:;"'<>?/]|'[\dA-Z]|s[\w!@#$%^&*()_+=\-.,~`{}[\]|\\:;"'<>?/]{2}|@[\w!@#$%^&*()_+=\-.,~`{}[\]|\\:;"'<>?/]|z[\dA-Z]|Z[\dA-Z]|q)+?)";

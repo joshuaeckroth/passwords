@@ -5,9 +5,10 @@
 #include "genetic.h"
 #include <algorithm>
 #include <iostream>
+#include <random>
 using namespace std;
 
-Genetic::Genetic(vector<Rule> &rules) : population(rules) {}
+Genetic::Genetic(vector<Rule> &rules, vector<string> &primitives) : population(rules), primitives(primitives) {}
 
 Genetic::~Genetic() {
 }
@@ -19,8 +20,8 @@ void Genetic::run(int num_generations) {
         cout << "parents: " << parents.first.get_rule_clean() << " and " << parents.second.get_rule_clean() << endl;
         pair<Rule, Rule> children = crossover(parents);
         cout << "children: " << children.first.get_rule_clean() << " and " << children.second.get_rule_clean() << endl;
-        mutate(children.first);
-        mutate(children.second);
+//        mutate(children.first);
+//        mutate(children.second);
         cout << "mutated children: " << children.first.get_rule_clean() << " and " << children.second.get_rule_clean() << endl;
         children.first.reset_weight();
         children.second.reset_weight();
@@ -51,12 +52,35 @@ pair<Rule, Rule> Genetic::crossover(const pair<Rule, Rule>& parents) {
     return make_pair(Rule(child_a), Rule(child_b));
 }
 
-// TODO: don't treat as a string; use actual primitives for mutation
-Rule Genetic::mutate(const Rule &rule) {
-    string rule_str = rule.get_rule_clean();
-    int mutation_point = rand() % rule_str.size();
-    rule_str[mutation_point] = 'a' + (rand() % 26);
-    return Rule(rule_str);
+Rule Genetic::mutate(const Rule &rule, MutationType type) {
+    auto primitives = rule.get_primitives();
+    size_t prim_count = primitives.size();
+    std::random_device dev;
+    std::mt19937 rng(dev());
+    typedef std::uniform_int_distribution<std::mt19937::result_type> dtype;
+    dtype dist(0, prim_count - ((type == INSERT) ? 0 : 1));
+    size_t idx = (size_t) dist(rng);
+    auto it = primitives.begin() + idx;
+    string primitive = "";
+    if (type == INSERT || type == SUBSTITUTE) {
+        dtype prim_dist(0, this->primitives.size() - 1);
+        primitive = this->primitives[prim_dist(rng)];
+    }
+    switch (type) {
+        case INSERT:
+            primitives.insert(it, primitive);
+            break;
+        case DELETE:
+            primitives.erase(it);
+            break;
+        case SUBSTITUTE:
+            primitives[idx] = primitive;
+            break;
+        case DUPLICATE:
+            primitives.insert(it, primitives[idx]);
+            break;
+    }
+    return Rule::join_primitives(primitives);
 }
 
 double Genetic::evaluate_fitness(const Rule &rule) {

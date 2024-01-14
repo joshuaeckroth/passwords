@@ -211,7 +211,7 @@ bool check_rule_position_validity(const string& rule, const string& password) {
     return true;
 }
 
-vector<string> Rule::get_primitives() {
+vector<string> Rule::get_primitives() const {
     vector<string> primitives;
     char delim = ' ';
     size_t start = 0;
@@ -239,8 +239,9 @@ vector<string> Rule::tokenize() {
 
 Rule Rule::join_primitives(vector<string> primitives) {
     string full_rule_str = "";
-    for (auto primitive : primitives) {
-        full_rule_str += (" " + primitive);
+    for (size_t idx = 0; idx < primitives.size(); idx++) {
+        string primitive = primitives[idx];
+        full_rule_str += (((idx > 0) ? " " : "") + primitive);
     }
     return Rule(full_rule_str);
 }
