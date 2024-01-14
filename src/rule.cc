@@ -19,15 +19,21 @@ using boost::regex, boost::regex_replace, boost::smatch;
 
 Rule::Rule(string s) : raw(std::move(s)) {
     clean_rule = regex_replace(regex_replace(raw, regex("\""), "QUOTE"), regex("\t"), "\\t");
+    tokens = tokenize();
 }
 
 Rule::Rule(const char* s) : raw(string(s)) {
     clean_rule = regex_replace(regex_replace(raw, regex("\""), "QUOTE"), regex("\t"), "\\t");
+    tokens = tokenize();
 }
 
-Rule::Rule(const Rule& r) : raw(r.raw), clean_rule(r.clean_rule), weight(r.weight) {}
+Rule::Rule(const Rule& r) : raw(r.raw), clean_rule(r.clean_rule), weight(r.weight) {
+    tokens = tokenize();
+}
 
-Rule::Rule(const Rule&& r) : raw(std::move(r.raw)), clean_rule(std::move(r.clean_rule)), weight(r.weight) {}
+Rule::Rule(const Rule&& r) : raw(std::move(r.raw)), clean_rule(std::move(r.clean_rule)), weight(r.weight) {
+    tokens = tokenize();
+}
 
 Rule& Rule::operator=(const Rule &r) {
     this->raw = r.raw;
@@ -227,14 +233,18 @@ vector<string> Rule::get_primitives() const {
 }
 
 vector<string> Rule::tokenize() {
-    vector<string> tokens;
+    vector<string> local_tokens;
     std::smatch matches;
     string s = this->clean_rule;;
     for (std::smatch sm; regex_search(s, sm, Rule::tokenize_regex);) {
-        tokens.push_back(sm.str());
+        local_tokens.push_back(sm.str());
         s = sm.suffix();
     }
-    return tokens;
+    return local_tokens;
+}
+
+const vector<string>& Rule::get_tokens() const {
+    return this->tokens;
 }
 
 Rule Rule::join_primitives(vector<string> primitives) {

@@ -1,12 +1,9 @@
-//
-// Created by josh on 12/21/23.
-//
-
 #ifndef PASSWORDS_GENETIC_H
 #define PASSWORDS_GENETIC_H
 
 #include <vector>
 #include <utility>
+#include <random>
 #include "rule.h"
 
 enum MutationType {
@@ -22,12 +19,15 @@ class Genetic {
         ~Genetic();
         void run(int);
     private:
-        std::pair<Rule, Rule> crossover(const std::pair<Rule, Rule>&);
+
+        std::vector<Rule> crossover(const std::pair<Rule, Rule>&);
         Rule mutate(const Rule&, MutationType);
         double evaluate_fitness(const Rule&);
         std::pair<Rule, Rule> select_parents();
         std::vector<Rule> population;
         std::vector<std::string> primitives;
+        std::random_device rd;
+        std::default_random_engine rand_generator;
 };
 
 

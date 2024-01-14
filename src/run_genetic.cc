@@ -1,7 +1,3 @@
-//
-// Created by josh on 12/21/23.
-//
-
 #include <vector>
 #include <string>
 #include "genetic.h"
