@@ -27,11 +27,11 @@ Rule::Rule(const char* s) : raw(string(s)) {
     tokens = tokenize();
 }
 
-Rule::Rule(const Rule& r) : raw(r.raw), clean_rule(r.clean_rule), weight(r.weight) {
+Rule::Rule(const Rule& r) : raw(r.raw), clean_rule(r.clean_rule), weight(r.weight), score(r.score) {
     tokens = tokenize();
 }
 
-Rule::Rule(const Rule&& r) : raw(std::move(r.raw)), clean_rule(std::move(r.clean_rule)), weight(r.weight) {
+Rule::Rule(const Rule&& r) : raw(std::move(r.raw)), clean_rule(std::move(r.clean_rule)), weight(r.weight), score(r.score) {
     tokens = tokenize();
 }
 
@@ -39,6 +39,7 @@ Rule& Rule::operator=(const Rule &r) {
     this->raw = r.raw;
     this->clean_rule = r.clean_rule;
     this->weight = r.weight;
+    this->score = r.score;
     return *this;
 }
 
@@ -76,7 +77,8 @@ void Rule::reset_weight() {
 }
 
 bool Rule::operator<(const Rule &r) const {
-    return this->weight < r.get_weight();
+    //return this->weight < r.get_weight();
+    return this->clean_rule < r.get_rule_clean();
 }
 
 std::ostream& operator<<(std::ostream &os, const Rule &r) {
@@ -254,6 +256,18 @@ Rule Rule::join_primitives(vector<string> primitives) {
         full_rule_str += (((idx > 0) ? " " : "") + primitive);
     }
     return Rule(full_rule_str);
+}
+
+float Rule::get_score() const {
+    return this->score;
+}
+
+void Rule::set_score(float score) {
+    this->score = score;
+}
+
+bool Rule::operator==(const Rule &r) const {
+    return this->clean_rule == r.get_rule_clean();
 }
 
 

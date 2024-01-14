@@ -1,13 +1,42 @@
 #include "genetic.h"
 #include "tree_builder.h"
+#include "rule.h"
 #include <algorithm>
 #include <iostream>
-#include <random>
+
+extern "C" {
+#include <rax.h>
+}
+
 using namespace std;
 
-Genetic::Genetic(vector<Rule> &rules, vector<string> &primitives, vector<string> *target_passwords) : population(rules), primitives(primitives), target_passwords(target_passwords), rand_generator(rd()) {}
+Genetic::Genetic(vector<Rule> &rules, vector<string> &primitives, vector<string> &target_passwords, rax *pw_tree_targets)
+    : primitives(primitives), target_passwords(target_passwords), pw_tree_targets(pw_tree_targets) {
+    population = deque<Rule>(rules.begin(), rules.end());
+    initialize_rule_replacements();
+    srand(0);
+}
 
 Genetic::~Genetic() {
+}
+
+void Genetic::add_to_population(Rule &rule) {
+    float fitness = evaluate_fitness(rule);
+    rule.set_score(fitness);
+    if (population.empty()) {
+        population.push_back(rule);
+        return;
+    }
+    for(auto it = population.begin(); it != population.end(); it++) {
+        if(fitness > it->get_score()) {
+            if(it->get_rule_clean() == rule.get_rule_clean()) {
+                return;
+            }
+            population.insert(it, rule);
+            return;
+        }
+    }
+    population.push_back(rule);
 }
 
 void Genetic::run(int num_generations) {
@@ -18,23 +47,39 @@ void Genetic::run(int num_generations) {
         vector<Rule> children = crossover(parents);
         for(Rule child: children) {
             cout << "child: " << child.get_rule_clean() << endl;
-//            mutate(child);
+            auto type_idx = (size_t) rand() % 4;
+            auto type = (MutationType) type_idx;
+            child = mutate(child, type);
             cout << "mutated child: " << child.get_rule_clean() << endl;
-            child.reset_weight();
-            population.push_back(child);
+            string child_simplified_str = simplify_rule(child.get_rule_clean());
+            cout << "Child: " << child.get_rule_clean() << " simplified to: " << child_simplified_str << endl;
+            if(!child_simplified_str.empty()) {
+                Rule child_simplified = Rule(child_simplified_str);
+                add_to_population(child_simplified);
+            }
         }
-        // sort by fitness
-        sort(population.begin(), population.end(), [&](const Rule &a, const Rule &b) {
-            return evaluate_fitness(a) < evaluate_fitness(b);
-        });
+        cout << "Removing two lowest-fitness rules" << endl;
+        cout << "Rule 1: " << population.back().get_rule_clean() << " with score " << population.back().get_score() << endl;
         population.pop_back(); // remove two lowest-fitness rules
+        cout << "Rule 2: " << population.back().get_rule_clean() << " with score " << population.back().get_score() << endl;
         population.pop_back();
+        cout << "Best rule: " << population.front().get_rule_clean() << " with score " << population.front().get_score() << endl;
+        cout << "Population size: " << population.size() << endl;
     }
 }
 
 pair<Rule, Rule> Genetic::select_parents() {
-    // pick top two parents
-    return make_pair(population[0], population[1]);
+    for(auto it = population.begin(); it != population.end(); it++) {
+        Rule& first = *it;
+        Rule& second = *(it+1);
+        pair<Rule, Rule> parents = make_pair(first, second);
+        if(breed_pairs.find(parents) == breed_pairs.end()) {
+            breed_pairs.insert(parents);
+            return parents;
+        }
+    }
+    cout << "No parents found, returning first two rules" << endl;
+    return make_pair(population.front(), population.front());
 }
 
 vector<Rule> Genetic::crossover(const pair<Rule, Rule>& parents) {
@@ -45,7 +90,7 @@ vector<Rule> Genetic::crossover(const pair<Rule, Rule>& parents) {
         return {concat_rule};
     }
     uniform_int_distribution<int> uniform_dist(1, min(rule_a_tokens.size(), rule_b_tokens.size())-2);
-    int crossover_point = uniform_dist(rand_generator);
+    int crossover_point = 1 + rand() % (min(rule_a_tokens.size(), rule_b_tokens.size()) - 1);
     cout << "crossover point: " << crossover_point << endl;
     vector<string> child_left_right_tokens, child_right_left_tokens, child_concat_tokens, child_concat_reverse_tokens,
             child_left_tokens, child_right_tokens;
@@ -77,16 +122,12 @@ vector<Rule> Genetic::crossover(const pair<Rule, Rule>& parents) {
 Rule Genetic::mutate(const Rule &rule, MutationType type) {
     auto primitives = rule.get_primitives();
     size_t prim_count = primitives.size();
-    std::random_device dev;
-    std::mt19937 rng(dev());
-    typedef std::uniform_int_distribution<std::mt19937::result_type> dtype;
-    dtype dist(0, prim_count - ((type == INSERT) ? 0 : 1));
-    size_t idx = (size_t) dist(rng);
+    size_t idx = (size_t) rand() % prim_count + ((type == INSERT) ? 1 : 0);
     auto it = primitives.begin() + idx;
     string primitive = "";
     if (type == INSERT || type == SUBSTITUTE) {
-        dtype prim_dist(0, this->primitives.size() - 1);
-        primitive = this->primitives[prim_dist(rng)];
+        size_t prim_idx = (size_t) rand() % this->primitives.size();
+        primitive = this->primitives[prim_idx];
     }
     switch (type) {
         case INSERT:
@@ -102,60 +143,29 @@ Rule Genetic::mutate(const Rule &rule, MutationType type) {
             primitives.insert(it, primitives[idx]);
             break;
     }
+    cout << "rule: " << rule.get_rule_clean() << endl;
+    cout << "mutated rule: " << Rule::join_primitives(primitives).get_rule_clean() << endl;
     return Rule::join_primitives(primitives);
 }
 
-// TODO: don't treat as a string; use actual primitives for mutation
-Rule Genetic::mutate(const Rule &rule) {
-    string rule_str = rule.get_rule_clean();
-    int mutation_point = rand() % rule_str.size();
-    rule_str[mutation_point] = 'a' + (rand() % 26);
-    return Rule(rule_str);
-}
-
-// error: use of undeclared identifier 'target_passwords'
 // run against a set of passwords and see how many it cracks
-double Genetic::evaluate_fitness(const Rule &rule) {
-    //tree builder for passwords
-    TreeBuilder tb(target_passwords,
-               dict_words,
-               population, //rules
-               count_per_cycle,
-               score_decay_factor,
-               num_cycles,
-               pw_distribution_fp != "",
-               password_strengths);
-
-    rax *pw_tree_processed = tb.get_password_tree_processed();
+float Genetic::evaluate_fitness(const Rule &rule) {
     float score = 0.0;
+    // generate vector of N random positions
+    vector<size_t> positions;
+    for (size_t i = 0; i < 1000; i++) {
+        positions.push_back(rand() % this->target_passwords.size());
+    }
     // transform a password (passwords set in constructor)
-
-    for (const string& password : target_passwords) {
+    for (unsigned long position : positions) {
+        string password = this->target_passwords[position];
 	    //apply rule
     	string new_pw = rule.apply_rule(password);
-        cout << "New password:" << new_pw << endl;
-
 		//check password set for hits with the transformed password
 		//transformed password is in the tree
-		if ((raxFind(this->pw_tree_processed, (unsigned char*) new_pw, strlen(new_pw)+1)) != raxNotFound) {
+		if ((raxFind(this->pw_tree_targets, (unsigned char*)new_pw.c_str(), new_pw.size()+1)) != raxNotFound) {
             score+=1.0;
         }
-		/*for (const string& target : target_passwords) {
-            	if (target == new_pw) {
-	        	score+=1.0;
-	    		}
-        }*/
     }
     return score;
 }
-/*double Genetic::evaluate_fitness(const Rule &rule, const vector<string> *target_passwords) {
-    // run against a set of passwords and see how many it cracks
-	this->targets = target_passwords;
-	//loop through passwords
-	for(size_t idx = 0; idx < target_passwords->size(); idx++) {
-        	string password = target_passwords->at(idx);
-		//apply rule to password, then check against passwords
-		char *new_pw = this->apply_rule(rule, password);
-	}
-    return hit_count;
-}*/
