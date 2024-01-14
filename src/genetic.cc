@@ -1,4 +1,5 @@
 #include "genetic.h"
+#include "tree_builder.h"
 #include <algorithm>
 #include <iostream>
 #include <random>
@@ -112,24 +113,38 @@ Rule Genetic::mutate(const Rule &rule) {
     return Rule(rule_str);
 }
 
+// error: use of undeclared identifier 'target_passwords'
 // run against a set of passwords and see how many it cracks
 double Genetic::evaluate_fitness(const Rule &rule) {
     //tree builder for passwords
+    TreeBuilder tb(target_passwords,
+               dict_words,
+               population, //rules
+               count_per_cycle,
+               score_decay_factor,
+               num_cycles,
+               pw_distribution_fp != "",
+               password_strengths);
 
+    rax *pw_tree_processed = tb.get_password_tree_processed();
+    float score = 0.0;
     // transform a password (passwords set in constructor)
+
     for (const string& password : target_passwords) {
-    	//reset score
-    	float score = 0.0;
 	    //apply rule
-    	new_pw = apply_rule(rule, password);
-        cout << "New password": << new_pw << endl;
+    	string new_pw = rule.apply_rule(password);
+        cout << "New password:" << new_pw << endl;
 
 		//check password set for hits with the transformed password
-		for (const string& target : target_passwords) {
+		//transformed password is in the tree
+		if ((raxFind(this->pw_tree_processed, (unsigned char*) new_pw, strlen(new_pw)+1)) != raxNotFound) {
+            score+=1.0;
+        }
+		/*for (const string& target : target_passwords) {
             	if (target == new_pw) {
 	        	score+=1.0;
 	    		}
-        }
+        }*/
     }
     return score;
 }
