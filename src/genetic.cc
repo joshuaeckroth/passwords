@@ -10,8 +10,8 @@ extern "C" {
 
 using namespace std;
 
-Genetic::Genetic(vector<Rule> &rules, vector<string> &primitives, vector<string> &target_passwords, rax *pw_tree_targets)
-    : primitives(primitives), target_passwords(target_passwords), pw_tree_targets(pw_tree_targets) {
+Genetic::Genetic(vector<Rule> &rules, vector<string> &primitives, vector<string> &target_passwords, rax *pw_tree_targets, int max_pop)
+    : primitives(primitives), target_passwords(target_passwords), pw_tree_targets(pw_tree_targets), max_pop(max_pop) {
     population = deque<Rule>(rules.begin(), rules.end());
     initialize_rule_replacements();
     srand(0);
@@ -20,8 +20,11 @@ Genetic::Genetic(vector<Rule> &rules, vector<string> &primitives, vector<string>
 Genetic::~Genetic() {
 }
 
-void Genetic::add_to_population(Rule &rule) {
-    float fitness = evaluate_fitness(rule);
+void Genetic::add_to_population(Rule &rule, const Rule& parent_a, const Rule& parent_b, const int &top_score) {
+    if(rule == parent_a || rule == parent_b) {
+        return;
+    }
+    float fitness = evaluate_fitness(rule, parent_a, parent_b, top_score);
     rule.set_score(fitness);
     if (population.empty()) {
         population.push_back(rule);
@@ -40,14 +43,19 @@ void Genetic::add_to_population(Rule &rule) {
 }
 
 void Genetic::run(int num_generations) {
+    int top_score = 0;
     for (int i = 0; i < num_generations; i++) {
         cout << "generation " << i << endl;
         pair<Rule, Rule> parents = select_parents();
         cout << "parents: " << parents.first.get_rule_clean() << " and " << parents.second.get_rule_clean() << endl;
         vector<Rule> children = crossover(parents);
         for(Rule child: children) {
+            if(child.get_tokens().size() > 10) {
+                cout << "Skipping child with too many tokens: " << child.get_rule_clean() << endl;
+                continue;
+            }
             cout << "child: " << child.get_rule_clean() << endl;
-            auto type_idx = (size_t) rand() % 4;
+            auto type_idx = (size_t) rand() % 5;
             auto type = (MutationType) type_idx;
             child = mutate(child, type);
             cout << "mutated child: " << child.get_rule_clean() << endl;
@@ -55,15 +63,23 @@ void Genetic::run(int num_generations) {
             cout << "Child: " << child.get_rule_clean() << " simplified to: " << child_simplified_str << endl;
             if(!child_simplified_str.empty()) {
                 Rule child_simplified = Rule(child_simplified_str);
-                add_to_population(child_simplified);
+                add_to_population(child_simplified, parents.first, parents.second, top_score);
             }
         }
-        cout << "Removing two lowest-fitness rules" << endl;
-        cout << "Rule 1: " << population.back().get_rule_clean() << " with score " << population.back().get_score() << endl;
-        population.pop_back(); // remove two lowest-fitness rules
-        cout << "Rule 2: " << population.back().get_rule_clean() << " with score " << population.back().get_score() << endl;
-        population.pop_back();
-        cout << "Best rule: " << population.front().get_rule_clean() << " with score " << population.front().get_score() << endl;
+        if(population.size() > max_pop) {
+            cout << "Removing lowest-fitness rules" << endl;
+            int remove_count = population.size() - max_pop;
+            for (int j = 0; j < remove_count; j++) {
+                cout << "Dropped rule: " << population.back().get_rule_clean() << " with score "
+                     << population.back().get_score() << endl;
+                population.pop_back();
+            }
+        }
+        top_score = population.front().get_score();
+        cout << "Best 10 rules:" << endl;
+        for(int j = 0; j < 10; j++) {
+            cout << population[j].get_rule_clean() << " with score " << population[j].get_score() << endl;
+        }
         cout << "Population size: " << population.size() << endl;
     }
 }
@@ -120,6 +136,9 @@ vector<Rule> Genetic::crossover(const pair<Rule, Rule>& parents) {
 }
 
 Rule Genetic::mutate(const Rule &rule, MutationType type) {
+    if(type == NO_MUTATION) {
+        return rule;
+    }
     auto primitives = rule.get_primitives();
     size_t prim_count = primitives.size();
     size_t idx = (size_t) rand() % prim_count + ((type == INSERT) ? 1 : 0);
@@ -143,29 +162,38 @@ Rule Genetic::mutate(const Rule &rule, MutationType type) {
             primitives.insert(it, primitives[idx]);
             break;
     }
-    cout << "rule: " << rule.get_rule_clean() << endl;
-    cout << "mutated rule: " << Rule::join_primitives(primitives).get_rule_clean() << endl;
     return Rule::join_primitives(primitives);
 }
 
 // run against a set of passwords and see how many it cracks
-float Genetic::evaluate_fitness(const Rule &rule) {
+float Genetic::evaluate_fitness(const Rule &rule, const Rule &parent_a, const Rule &parent_b, const int &top_score) {
+    int N = max(10, top_score) * 2;
     float score = 0.0;
     // generate vector of N random positions
     vector<size_t> positions;
-    for (size_t i = 0; i < 1000; i++) {
+    for (size_t i = 0; i < N; i++) {
         positions.push_back(rand() % this->target_passwords.size());
     }
     // transform a password (passwords set in constructor)
+    int no_op_count = 0;
     for (unsigned long position : positions) {
         string password = this->target_passwords[position];
 	    //apply rule
     	string new_pw = rule.apply_rule(password);
+        string new_pw_parent_a = parent_a.apply_rule(password);
+        string new_pw_parent_b = parent_b.apply_rule(password);
+        if(new_pw == password || new_pw_parent_a == new_pw || new_pw_parent_b == new_pw) {
+            no_op_count++;
+        }
 		//check password set for hits with the transformed password
 		//transformed password is in the tree
 		if ((raxFind(this->pw_tree_targets, (unsigned char*)new_pw.c_str(), new_pw.size()+1)) != raxNotFound) {
             score+=1.0;
         }
+    }
+    if(no_op_count == N) {
+        score = 0.0;
+        cout << "No-op rule detected: " << rule.get_rule_clean() << endl;
     }
     return score;
 }

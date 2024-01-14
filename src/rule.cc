@@ -139,6 +139,12 @@ void initialize_rule_replacements() {
     rule_replacements.push_back(pair<regex, string>(R"((^| )o0. \[)", "$1"));
     rule_replacements.push_back(pair<regex, string>("(^| )o.(.) @\\2", "$1@$2"));
     rule_replacements.push_back(pair<regex, string>(R"((^| )\^(.) o0(.))", "$1^$3"));
+    rule_replacements.push_back(pair<regex, string>(R"((^| )s(..) s\2)", "$1s$2"));
+    rule_replacements.push_back(pair<regex, string>(R"((^| )s(..) ([rcCult]))", "$1$3 s$2"));
+    rule_replacements.push_back(pair<regex, string>(R"((^| )s(..) s(..) s\2)", "$1s$2 s$3"));
+    rule_replacements.push_back(pair<regex, string>(R"((^| )s(.)(.) s\3(.))", "$1s$2$4"));
+    rule_replacements.push_back(pair<regex, string>(R"((^| )s(.)(.) s\2.)", "$1s$2$3"));
+    rule_replacements.push_back(pair<regex, string>(R"((^| )3(..) 3\2)", "$1"));
     rule_replacements.push_back(pair<regex, string>(R"((^| )\$. ,\d)", "$1")); // not equiv, but dumb to have a , operator after an append
     rule_replacements.push_back(pair<regex, string>(R"((^| )(z\d) z\d)", "$1$2")); // not equiv, but dumb to have two z operators back to back
     rule_replacements.push_back(pair<regex, string>(R"((^| )(Z\d) Z\d)", "$1$2")); // not equiv, but dumb to have two Z operators back to back
@@ -147,9 +153,9 @@ void initialize_rule_replacements() {
     // insert-front comes before insert-back
     rule_replacements.push_back(pair<regex, string>(R"((^| )(\$\S) (\^\S))", "$1$3 $2"));
     // chop-right comes before various other options
-    rule_replacements.push_back(pair<regex, string>(R"((^| )\] (\[|s\S\S|\^\S|C|c|t|u|l))", "$1] $2"));
+    rule_replacements.push_back(pair<regex, string>(R"((^| )\] (\[|s\S\S|\^\S|C|c|t|u|l|3))", "$1] $2"));
     // chop-left comes before various other options
-    rule_replacements.push_back(pair<regex, string>(R"((^| )(s\S\S|\$\S|C|c|t|u|l) \[)", "$1[ $2"));
+    rule_replacements.push_back(pair<regex, string>(R"((^| )(s\S\S|\$\S|C|c|t|u|l|3) \[)", "$1[ $2"));
     // switching a char you just inserted
     rule_replacements.push_back(pair<regex, string>(R"((^| )(\$\^)(\S) s\3(\S))", "$1$2$4 s$3$4"));
 

@@ -28,6 +28,7 @@ rax *build_target_password_tree(const vector<string>& target_passwords) {
 
 int main() {
     //load rules and primitives
+    cout << "Loading rules and primitives..." << endl;
     vector<string> rules_vec = RuleLoader::load_rules<string>("rules/primitives.rule");
     vector<string> primitives = RuleLoader::load_rules<string>("rules/primitives.rule");
     vector<Rule> rules;
@@ -37,6 +38,6 @@ int main() {
     //load passwords
     vector<string> target_passwords = PasswordLoader::load_passwords("data/rockyou.txt");
     rax *pw_tree_targets = build_target_password_tree(target_passwords);
-    Genetic genetic(rules, primitives, target_passwords, pw_tree_targets);
-    genetic.run(100);
+    Genetic genetic(rules, primitives, target_passwords, pw_tree_targets, 1000);
+    genetic.run(10000);
 }
