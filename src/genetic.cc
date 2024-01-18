@@ -199,12 +199,17 @@ vector<Rule> Genetic::crossover(const pair<Rule, Rule>& parents) {
     size_t crossover_point = 1 + random_integer(0, min(rule_a_tokens.size(), rule_b_tokens.size()) - 2);
     //int crossover_point = 1 + rand() % (min(rule_a_tokens.size(), rule_b_tokens.size()) - 1);
     cout << "crossover point: " << crossover_point << endl;
-    vector<string> child_left_right_tokens,
-        child_right_left_tokens,
-        child_concat_tokens,
-        child_concat_reverse_tokens,
-        child_left_tokens,
-        child_right_tokens;
+    /* consider: ABC and XYZ as the parents, crossover point 1 */
+    vector<string> child_left_right_tokens, /* AYZ */
+        child_right_left_tokens, /* XBC */
+        child_concat_tokens, /* AYZXBC */
+        child_concat_reverse_tokens, /* XBCAYZ */
+        child_left_tokens, /* A */
+        child_right_tokens, /* X */
+        child_left_rest_tokens, /* BC */
+        child_right_rest_tokens, /* YZ */
+        child_orig_concat_tokens, /* ABCXYZ */
+        child_orig_concat_tokens_reverse; /* XBCAYZ */
     for (int i = 0; i < crossover_point; i++) {
         child_left_right_tokens.push_back(rule_a_tokens[i]);
         child_right_left_tokens.push_back(rule_b_tokens[i]);
@@ -213,21 +218,32 @@ vector<Rule> Genetic::crossover(const pair<Rule, Rule>& parents) {
     }
     for (int i = crossover_point; i < rule_a_tokens.size(); i++) {
         child_right_left_tokens.push_back(rule_a_tokens[i]);
+        child_left_rest_tokens.push_back(rule_a_tokens[i]);
     }
     for (int i = crossover_point; i < rule_b_tokens.size(); i++) {
         child_left_right_tokens.push_back(rule_b_tokens[i]);
+        child_right_rest_tokens.push_back(rule_b_tokens[i]);
     }
     child_concat_tokens.insert(child_concat_tokens.end(), child_left_right_tokens.begin(), child_left_right_tokens.end());
     child_concat_tokens.insert(child_concat_tokens.end(), child_right_left_tokens.begin(), child_right_left_tokens.end());
     child_concat_reverse_tokens.insert(child_concat_reverse_tokens.end(), child_right_left_tokens.begin(), child_right_left_tokens.end());
     child_concat_reverse_tokens.insert(child_concat_reverse_tokens.end(), child_left_right_tokens.begin(), child_left_right_tokens.end());
+    child_orig_concat_tokens.insert(child_orig_concat_tokens.end(), rule_a_tokens.begin(), rule_a_tokens.end());
+    child_orig_concat_tokens.insert(child_orig_concat_tokens.end(), rule_b_tokens.begin(), rule_b_tokens.end());
+    child_orig_concat_tokens_reverse.insert(child_orig_concat_tokens_reverse.end(), rule_b_tokens.begin(), rule_b_tokens.end());
+    child_orig_concat_tokens_reverse.insert(child_orig_concat_tokens_reverse.end(), rule_a_tokens.begin(), rule_a_tokens.end());
     Rule child_rule_a = Rule::join_primitives(child_left_right_tokens);
     Rule child_rule_b = Rule::join_primitives(child_right_left_tokens);
     Rule child_rule_c = Rule::join_primitives(child_concat_tokens);
     Rule child_rule_d = Rule::join_primitives(child_concat_reverse_tokens);
     Rule child_rule_e = Rule::join_primitives(child_left_tokens);
     Rule child_rule_f = Rule::join_primitives(child_right_tokens);
-    return {child_rule_a, child_rule_b, child_rule_c, child_rule_d, child_rule_e, child_rule_f};
+    Rule child_rule_g = Rule::join_primitives(child_left_rest_tokens);
+    Rule child_rule_h = Rule::join_primitives(child_right_rest_tokens);
+    Rule child_rule_i = Rule::join_primitives(child_orig_concat_tokens);
+    Rule child_rule_j = Rule::join_primitives(child_orig_concat_tokens_reverse);
+    return {child_rule_a, child_rule_b, child_rule_c, child_rule_d, child_rule_e,
+            child_rule_f, child_rule_g, child_rule_h, child_rule_i, child_rule_j};
 }
 
 Rule Genetic::mutate(const Rule &rule, MutationType type) {
