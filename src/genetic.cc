@@ -1,8 +1,9 @@
+#include <algorithm>
+#include <iostream>
 #include "genetic.h"
 #include "tree_builder.h"
 #include "rule.h"
-#include <algorithm>
-#include <iostream>
+#include "password_data.h"
 
 extern "C" {
 #include <rax.h>
@@ -17,8 +18,7 @@ Genetic::Genetic(vector<Rule> &rules, vector<string> &primitives, vector<string>
     srand(0);
 }
 
-Genetic::~Genetic() {
-}
+Genetic::~Genetic() {}
 
 void Genetic::add_to_population(Rule &rule, const Rule& parent_a, const Rule& parent_b, const int &top_score) {
     if(rule == parent_a || rule == parent_b) {
