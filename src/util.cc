@@ -4,7 +4,12 @@
 #include <iostream>
 #include <sstream>
 #include <iomanip>
+#include <random>
 #include "util.h"
+
+extern "C" {
+#include <rax.h>
+}
 
 //extern "C" {
 //#include <openssl/md5.h>
@@ -18,6 +23,17 @@ void md5_bytes_to_hex(const unsigned char *md5, char *result) {
     for(int i = 0; i < 16; i++) {
         ptr += sprintf(ptr, "%02x", md5[i]);
     }
+}
+
+size_t random_integer(size_t a, size_t b) {
+    static std::random_device dev;
+    static std::mt19937 rng(dev());
+    std::uniform_int_distribution<std::mt19937::result_type> dist(a, b);
+    return (size_t) dist(rng);
+}
+
+bool in_radix(rax *tree, std::string s) {
+    return raxFind(tree, (unsigned char*) s.c_str(), s.size() + 1) != raxNotFound;
 }
 
 //std::string sha1(const char *input) {

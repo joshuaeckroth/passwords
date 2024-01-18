@@ -17,8 +17,7 @@ rax *build_target_password_tree(const vector<string>& target_passwords) {
     for (size_t idx = 0; idx < target_passwords.size(); idx++) {
         string password = target_passwords.at(idx);
         auto *pdp = new PasswordData(true, (pw_cnt - idx) / ((float) pw_cnt + 1.0), idx);
-        if (0 == raxTryInsert(pw_tree_targets, (unsigned char*)password.c_str(), password.size()+1, (void *) pdp,
-                              NULL)) {
+        if (0 == raxTryInsert(pw_tree_targets, (unsigned char*) password.c_str(), password.size()+1, (void*) pdp, NULL)) {
             // this password has already been inserted
             continue;
         }
@@ -27,10 +26,11 @@ rax *build_target_password_tree(const vector<string>& target_passwords) {
 }
 
 int main(int argc, const char **argv) {
-    if (argc != 5) {
+    if (argc != 6) {
         cerr << "Usage: "
             << argv[0]
             << "\n  <initial population>\n  <primitives for mutations>\n  <password targets>\n  <cycles>"
+            << "\n  <evolution strategy: 'individual|collective'>"
             << endl;
         return -1;
     }
@@ -38,6 +38,7 @@ int main(int argc, const char **argv) {
     const char *primitives_path = argv[2];
     const char *password_targets_path = argv[3];
     int cycles = atoi(argv[4]);
+    const char *strategy = argv[5];
     cout << "*** Loading initial population from " << initial_population_path << endl;
     vector<string> rules_vec = RuleLoader::load_rules<string>(initial_population_path);
     vector<Rule> rules;
@@ -51,7 +52,7 @@ int main(int argc, const char **argv) {
     rax *pw_tree_targets = build_target_password_tree(target_passwords);
     cout << "*** Starting genetic algorithm with " << cycles << " cycles" << endl;
     Genetic genetic(rules, primitives, target_passwords, pw_tree_targets, cycles);
-    genetic.run(cycles);
+    genetic.run(cycles, ("collective" == string(strategy)) ? COLLECTIVE : INDIVIDUAL);
     raxIterator it;
     raxStart(&it, pw_tree_targets);
     raxSeek(&it, "^", NULL, 0);

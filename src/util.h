@@ -5,6 +5,10 @@
 #include <iostream>
 #include <climits>
 
+extern "C" {
+#include <rax.h>
+}
+
 #define ANSI_RED "\033[1;31m"
 #define ANSI_BLUE "\033[1;36m"
 #define ANSI_GREEN "\033[1;32m"
@@ -47,5 +51,9 @@ void print_seq(T seq, int limit = INT_MAX) {
     }
     std::cout << std::endl;
 }
+
+size_t random_integer(size_t, size_t);
+
+bool in_radix(rax*, std::string);
 
 #endif /* UTIL_H */

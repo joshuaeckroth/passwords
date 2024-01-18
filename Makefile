@@ -66,8 +66,8 @@ src/rule_loader.o: src/rule_loader.cc src/rule_loader.h src/rule.h
 src/password_loader.o: src/password_loader.cc src/password_loader.h
 	$(CXX) $(CXXFLAGS) $(CFLAGS_NATIVE_PW) -c src/password_loader.cc -o src/password_loader.o
 
-src/util.o: src/util.cc src/util.h
-	$(CXX) $(CXXFLAGS) $(CFLAGS_NATIVE_PW) $(LFLAGS_NATIVE) -c src/util.cc -o src/util.o
+src/util.o: src/util.cc src/util.h $(RADIX_ROOT)/rax.h
+	$(CXX) $(CXXFLAGS) $(CFLAGS_NATIVE_PW) $(LFLAGS_NATIVE) $(RADIX_FLAGS) -c src/util.cc -o src/util.o
 
 src/genetic.o: src/genetic.cc src/genetic.h $(RADIX_ROOT)/rax.h
 	$(CXX) $(CXXFLAGS) $(CFLAGS_NATIVE_PW) $(LFLAGS_NATIVE) $(RADIX_FLAGS) -c src/genetic.cc -o src/genetic.o
