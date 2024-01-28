@@ -73,53 +73,32 @@ size_t Genetic::evaluate_population_fitness(vector<Rule> pop) {
 
 void Genetic::run(size_t num_generations, EvolutionStrategy strategy) {
     if (strategy == COLLECTIVE) {
-        // insert the population_vec at the end of itself however many times (grows exponentially)
-        while (this->population_vec.size() < POPULATION_SIZE) {
-            this->population_vec.insert(this->population_vec.end(),
-                    this->population_vec.begin(),
-                    this->population_vec.end());
+        for (size_t idx = 0; idx < VILLAGE_COUNT; idx++) {
+            Village v(this->population_vec);
+            this->villages.push_back(v);
+            vector<string> ecosystem;
+            // TODO: create ecosystems
         }
-        // shuffle the order of population_vec rules
-        vector<Rule> tmp_vec;
-        for (size_t idx = 0; idx < POPULATION_SIZE; idx++) {
-            tmp_vec.push_back(this->population_vec[idx]);
-        }
-        this->population_vec = tmp_vec;
-        unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
-        std::shuffle(this->population_vec.begin(),
-                this->population_vec.end(),
-                std::default_random_engine(seed));
         for (size_t idx = 0; idx < num_generations; idx++) {
             /* 
              * Select individuals for mating...
              * For population level fitness we care about
-             * how rules contribute to overall fitness -
-             * choose individuals for mating based on
-             * which subgroups get the biggest number of
-             * _unique_ hits on targets.
+             * RPP (rules per percentage cracked). For
+             * individual fitness we care about the strength
+             * of passwords cracked by a rule
              */
-
-            // create villages
-            typedef std::pair<std::vector<Rule>, size_t> eval_pair;
-            vector<eval_pair> subgroup_evals;
-            size_t partition_size = POPULATION_SIZE / POPULATION_PARTITIONS;
-            for (size_t j = 0; j < POPULATION_PARTITIONS; j++) {
-                vector<Rule> partition;
-                partition.reserve(partition_size);
-                std::copy(this->population_vec.begin() + (j * partition_size),
-                        this->population_vec.begin() + ((j + 1) * partition_size),
-                        std::back_inserter(partition));
-                subgroup_evals.push_back({partition, 0});
+            // evaluate fitness of each village (RPP)
+            std::vector<std::pair<Village, size_t>> subgroup_evals;
+            for (auto &village : this->villages) {
+                size_t fitness = this->evaluate_population_fitness(village);
+                subgroup_evals.push_back(make_pair(village, fitness));
             }
-            // TODO: parallelize
-            // evaluate fitness of each village
-            for (auto &group : subgroup_evals) {
-                size_t fitness = this->evaluate_population_fitness(group.first);
-                group.second = fitness;
+            // select parents from each village
+            vector<vector<pair<Rule, Rule>>> all_parents;
+            for (size_t vidx = 0; vidx < this->villages.size(); vidx++) {
+                auto parents = this->select_parents(TOURNAMENT, vidx);
+                all_parents.push_back(parents);
             }
-            // sort by fitness
-            std::sort(subgroup_evals.begin(), subgroup_evals.end(),
-                    [](eval_pair a, eval_pair b) { return a.second > b.second; });
             for (auto &group : subgroup_evals) {
                 cout << "Fitness: " << group.second << endl;
             }
@@ -133,7 +112,7 @@ void Genetic::run(size_t num_generations, EvolutionStrategy strategy) {
              */
             // TODO: prune worst-performing villages
             // prune if max # of villages is exceeded, to keep same number of villages
-            if (subgroup_evals.size() > POPULATION_PARTITIONS) {
+            if (subgroup_evals.size() > VILLAGE_COUNT) {
                 cout << "Pruning worst-performing villages..." << endl;
                 size_t remove_count = subgroup_evals.size() - POPULATION_PARTITIONS;
                 for (size_t j = 0; j < remove_count; j++) {

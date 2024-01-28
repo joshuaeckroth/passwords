@@ -14,12 +14,12 @@ extern "C" {
 
 #define POPULATION_SIZE 2500
 #define POPULATION_PARTITIONS 5
+#define VILLAGE_COUNT POPULATION_PARTITIONS
 #define POPULATION_GROWTH_RATE 0.1f
 #define TOURNAMENT_PCT 0.5f
 // chance for an individual to breed with a member
 // of another village/population instead of its own
 #define GENE_MIGRATION_CHANCE 0.01f
-#define VILLAGE_COUNT POPULATION_PARTITIONS
 #define MUTATION_CHANCE 0.02f
 
 enum MutationType {
@@ -68,7 +68,9 @@ class Genetic {
         Villages villages;
         std::vector<Rule> population_vec;
         std::vector<std::string> primitives;
+        // TODO: rank by strength
         std::vector<std::string> target_passwords;
+        std::vector<std::vector<std::string>> ecosystems;
         StrengthMap password_strengths;
         rax *pw_tree_targets;
         size_t max_pop;
