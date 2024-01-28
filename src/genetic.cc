@@ -50,6 +50,7 @@ void Genetic::add_to_population(Rule &rule, const Rule& parent_a, const Rule& pa
 
 
 // returns a count of the number of *unique* password targets hit
+// TODO: make village fitness the RPP
 size_t Genetic::evaluate_population_fitness(vector<Rule> pop) {
     size_t score = 0;
     std::set<string> unique_hits;
@@ -67,11 +68,13 @@ size_t Genetic::evaluate_population_fitness(vector<Rule> pop) {
 
 void Genetic::run(size_t num_generations, EvolutionStrategy strategy) {
     if (strategy == COLLECTIVE) {
+        // insert the population_vec at the end of itself however many times (grows exponentially)
         while (this->population_vec.size() < POPULATION_SIZE) {
             this->population_vec.insert(this->population_vec.end(),
                     this->population_vec.begin(),
                     this->population_vec.end());
         }
+        // shuffle the order of population_vec rules
         vector<Rule> tmp_vec;
         for (size_t idx = 0; idx < POPULATION_SIZE; idx++) {
             tmp_vec.push_back(this->population_vec[idx]);
@@ -90,6 +93,8 @@ void Genetic::run(size_t num_generations, EvolutionStrategy strategy) {
              * which subgroups get the biggest number of
              * _unique_ hits on targets.
              */
+
+            // create villages
             typedef std::pair<std::vector<Rule>, size_t> eval_pair;
             vector<eval_pair> subgroup_evals;
             size_t partition_size = POPULATION_SIZE / POPULATION_PARTITIONS;
@@ -102,10 +107,12 @@ void Genetic::run(size_t num_generations, EvolutionStrategy strategy) {
                 subgroup_evals.push_back({partition, 0});
             }
             // TODO: parallelize
+            // evaluate fitness of each village
             for (auto &group : subgroup_evals) {
                 size_t fitness = this->evaluate_population_fitness(group.first);
                 group.second = fitness;
             }
+            // sort by fitness
             std::sort(subgroup_evals.begin(), subgroup_evals.end(),
                     [](eval_pair a, eval_pair b) { return a.second > b.second; });
             for (auto &group : subgroup_evals) {
@@ -119,6 +126,24 @@ void Genetic::run(size_t num_generations, EvolutionStrategy strategy) {
              * second group by an offset of idx to prevent having to
              * shuffle/choose randomly.
              */
+            // TODO: prune worst-performing villages
+            // prune if max # of villages is exceeded, to keep same number of villages
+            if (subgroup_evals.size() > POPULATION_PARTITIONS) {
+                cout << "Pruning worst-performing villages..." << endl;
+                size_t remove_count = subgroup_evals.size() - POPULATION_PARTITIONS;
+                for (size_t j = 0; j < remove_count; j++) {
+                    cout << "Dropped village: " << &subgroup_evals.back().first << " with score "
+                         << subgroup_evals.back().second << endl;
+                    subgroup_evals.pop_back();
+                }
+            }
+            // OR:
+            // prune a set number of villages each time
+            // then replace them with a set number of villages to add
+            cout << "Pruning worst-performing village..." << endl;
+            cout << "Dropped village: " << &subgroup_evals.back().first << " with score "
+                 << subgroup_evals.back().second << endl;
+
             // TODO: CROSSOVER
             /*
              * Mutate some small number of individuals
