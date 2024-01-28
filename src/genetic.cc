@@ -54,9 +54,27 @@ void Genetic::add_to_population(Rule &rule, const Rule& parent_a, const Rule& pa
 }
 
 
-// returns a count of the number of *unique* password targets hit
 // TODO: make village fitness the RPP
 size_t Genetic::evaluate_population_fitness(vector<Rule> pop) {
+    // rpp is the number of rules/ 100*(cracked/hashed)-6.33
+    // cracked is number of passwords cracked by an entire village (so don't include passwords already cracked by the village)
+    //what is hashed value here?
+
+    // get the number of unique password targets hit by a rule set
+    std::set<string> unique_hits;
+    for (auto &rule : pop) {
+        for (auto &pw : this->target_passwords) {
+            string new_pw = rule.apply_rule(pw);
+            if (new_pw == pw) continue; // noop
+            if (in_radix(this->pw_tree_targets, new_pw)) {
+                unique_hits.insert(new_pw);
+            }
+        }
+    }
+    int num_cracked = unique_hits.size();
+    float rpp = pop.size()/ 100 *(num_cracked) -6.33;
+    return rpp;
+    /*
     size_t score = 0;
     std::set<string> unique_hits;
     for (auto &rule : pop) {
@@ -69,6 +87,7 @@ size_t Genetic::evaluate_population_fitness(vector<Rule> pop) {
         }
     }
     return unique_hits.size();
+    */
 }
 
 void Genetic::run(size_t num_generations, EvolutionStrategy strategy) {
@@ -131,23 +150,6 @@ void Genetic::run(size_t num_generations, EvolutionStrategy strategy) {
              * second group by an offset of idx to prevent having to
              * shuffle/choose randomly.
              */
-            // TODO: prune worst-performing villages
-            // prune if max # of villages is exceeded, to keep same number of villages
-            if (subgroup_evals.size() > POPULATION_PARTITIONS) {
-                cout << "Pruning worst-performing villages..." << endl;
-                size_t remove_count = subgroup_evals.size() - POPULATION_PARTITIONS;
-                for (size_t j = 0; j < remove_count; j++) {
-                    cout << "Dropped village: " << &subgroup_evals.back().first << " with score "
-                         << subgroup_evals.back().second << endl;
-                    subgroup_evals.pop_back();
-                }
-            }
-            // OR:
-            // prune a set number of villages each time
-            // then replace them with a set number of villages to add
-            cout << "Pruning worst-performing village..." << endl;
-            cout << "Dropped village: " << &subgroup_evals.back().first << " with score "
-                 << subgroup_evals.back().second << endl;
 
             // TODO: CROSSOVER
             /*
@@ -159,6 +161,16 @@ void Genetic::run(size_t num_generations, EvolutionStrategy strategy) {
              * replace a weaker group of individuals
              */
             // TODO: Replace worst-performing group in population with new group
+            // prune a set number of villages each time (currently just one)
+            // then replace with a set number of villages to add
+            // drop a set number of villages or a random number? below some threshold?
+            cout << "Pruning villages..." << endl;
+            int remove_count = 1;
+            for (int j = 0; j < remove_count; j++) {
+                cout << "Dropped village: " << &subgroup_evals.back().first << " with score "
+                     << subgroup_evals.back().second << endl;
+                subgroup_evals.pop_back();
+            }
             return;
         }
     } else {
