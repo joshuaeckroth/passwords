@@ -28,9 +28,11 @@ class Rule {
         const std::string& get_rule_raw() const;
         const std::string& get_rule_clean() const;
         std::string apply_rule(const std::string&) const;
+        // weight used in gentree, not genetic
         float get_weight() const;
         void decay_weight();
         void reset_weight();
+        // score used in genetic, not gentree
         float get_score() const;
         void set_score(float);
         bool operator<(const Rule &r) const;

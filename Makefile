@@ -69,7 +69,7 @@ src/password_loader.o: src/password_loader.cc src/password_loader.h
 src/util.o: src/util.cc src/util.h $(RADIX_ROOT)/rax.h
 	$(CXX) $(CXXFLAGS) $(CFLAGS_NATIVE_PW) $(LFLAGS_NATIVE) $(RADIX_FLAGS) -c src/util.cc -o src/util.o
 
-src/genetic.o: src/genetic.cc src/genetic.h $(RADIX_ROOT)/rax.h
+src/genetic.o: src/genetic.cc src/genetic.h $(RADIX_ROOT)/rax.h src/rule.h src/partial_guessing.h
 	$(CXX) $(CXXFLAGS) $(CFLAGS_NATIVE_PW) $(LFLAGS_NATIVE) $(RADIX_FLAGS) -c src/genetic.cc -o src/genetic.o
 
 src/gengraph.o: src/gengraph.cc src/rule.h src/rule_loader.h src/password_loader.h src/util.h src/password_node.h src/graph.h src/graph_builder.h src/graph_db_writer.h src/genetic.h
@@ -90,7 +90,7 @@ src/rule_data.o: src/rule_data.cc src/rule_data.h
 src/tree_builder.o: src/tree_builder.cc src/tree_builder.h $(RADIX_ROOT)/rax.h src/password_data.h src/rule_data.h src/rule.h src/partial_guessing.h $(HC_ARCHIVE)
 	$(CXX) $(CXXFLAGS) $(CFLAGS_NATIVE_PW) $(RADIX_FLAGS) $(LFLAGS_NATIVE) -c src/tree_builder.cc -o src/tree_builder.o $(HC_ARCHIVE)
 
-src/run_genetic.o: src/run_genetic.cc $(RADIX_ROOT)/rax.h src/rule_loader.h src/password_loader.h src/genetic.h src/password_data.h
+src/run_genetic.o: src/run_genetic.cc $(RADIX_ROOT)/rax.h src/rule_loader.h src/password_loader.h src/genetic.h src/password_data.h src/partial_guessing.h
 	$(CXX) $(CXXFLAGS) $(CFLAGS_NATIVE_PW) $(RADIX_FLAGS) $(LFLAGS_NATIVE) -c src/run_genetic.cc -o src/run_genetic.o $(HC_ARCHIVE)
 
 src/analyze_tree.o: src/analyze_tree.cc $(RADIX_ROOT)/rax.h src/analyze_tree.h src/rule_data.h

@@ -10,6 +10,7 @@
 #include "rule.h"
 #include "password_data.h"
 #include "util.h"
+#include "partial_guessing.h"
 
 extern "C" {
 #include <rax.h>
@@ -17,8 +18,12 @@ extern "C" {
 
 using namespace std;
 
-Genetic::Genetic(vector<Rule> &rules, vector<string> &primitives, vector<string> &target_passwords, rax *pw_tree_targets, size_t max_pop)
-    : primitives(primitives), target_passwords(target_passwords), pw_tree_targets(pw_tree_targets), max_pop(max_pop) {
+Genetic::Genetic(vector<Rule> &rules, vector<string> &primitives, vector<string> &target_passwords, rax *pw_tree_targets, size_t max_pop, StrengthMap sm)
+    : primitives(primitives),
+      target_passwords(target_passwords),
+      pw_tree_targets(pw_tree_targets),
+      max_pop(max_pop),
+      password_strengths(sm) {
     population_vec = rules;
     population = deque<Rule>(rules.begin(), rules.end());
     initialize_rule_replacements();
@@ -132,61 +137,88 @@ void Genetic::run(size_t num_generations, EvolutionStrategy strategy) {
             return;
         }
     } else {
-        size_t top_score = 0;
-        for (size_t i = 0; i < num_generations; i++) {
-            cout << "generation " << i << endl;
-            pair<Rule, Rule> parents = select_parents();
-            cout << "parents: " << parents.first.get_rule_clean() << " and " << parents.second.get_rule_clean() << endl;
-            vector<Rule> children = crossover(parents);
-            for (Rule child: children) {
-                if (child.get_tokens().size() > 10) {
-                    cout << "Skipping child with too many tokens: " << child.get_rule_clean() << endl;
-                    continue;
-                }
-                cout << "child: " << child.get_rule_clean() << endl;
-                // select mutation type
-                size_t type_idx = random_integer(0, 4);
-                auto type = (MutationType) type_idx;
-                child = mutate(child, type);
-                cout << "mutated child: " << child.get_rule_clean() << endl;
-                string child_simplified_str = simplify_rule(child.get_rule_clean());
-                cout << "Child: " << child.get_rule_clean() << " simplified to: " << child_simplified_str << endl;
-                if (!child_simplified_str.empty()) {
-                    Rule child_simplified = Rule(child_simplified_str);
-                    add_to_population(child_simplified, parents.first, parents.second, top_score);
-                }
-            }
-            if (population.size() > max_pop) {
-                cout << "Removing lowest-fitness rules" << endl;
-                size_t remove_count = population.size() - max_pop;
-                for (size_t j = 0; j < remove_count; j++) {
-                    cout << "Dropped rule: " << population.back().get_rule_clean() << " with score "
-                        << population.back().get_score() << endl;
-                    population.pop_back();
-                }
-            }
-            top_score = population.front().get_score();
-            cout << "Best 10 rules:" << endl;
-            for (size_t j = 0; j < 10; j++) {
-                cout << population[j].get_rule_clean() << " with score " << population[j].get_score() << endl;
-            }
-            cout << "Population size: " << population.size() << endl;
-        }
+//        size_t top_score = 0;
+//        for (size_t i = 0; i < num_generations; i++) {
+//            cout << "generation " << i << endl;
+//            pair<Rule, Rule> parents = select_parents();
+//            cout << "parents: " << parents.first.get_rule_clean() << " and " << parents.second.get_rule_clean() << endl;
+//            vector<Rule> children = crossover(parents);
+//            for (Rule child: children) {
+//                if (child.get_tokens().size() > 10) {
+//                    cout << "Skipping child with too many tokens: " << child.get_rule_clean() << endl;
+//                    continue;
+//                }
+//                cout << "child: " << child.get_rule_clean() << endl;
+//                // select mutation type
+//                size_t type_idx = random_integer(0, MUTATION_TYPE_SENTINEL - 1);
+//                auto type = (MutationType) type_idx;
+//                child = mutate(child, type);
+//                cout << "mutated child: " << child.get_rule_clean() << endl;
+//                string child_simplified_str = simplify_rule(child.get_rule_clean());
+//                cout << "Child: " << child.get_rule_clean() << " simplified to: " << child_simplified_str << endl;
+//                if (!child_simplified_str.empty()) {
+//                    Rule child_simplified = Rule(child_simplified_str);
+//                    add_to_population(child_simplified, parents.first, parents.second, top_score);
+//                }
+//            }
+//            if (population.size() > max_pop) {
+//                cout << "Removing lowest-fitness rules" << endl;
+//                size_t remove_count = population.size() - max_pop;
+//                for (size_t j = 0; j < remove_count; j++) {
+//                    cout << "Dropped rule: " << population.back().get_rule_clean() << " with score "
+//                        << population.back().get_score() << endl;
+//                    population.pop_back();
+//                }
+//            }
+//            top_score = population.front().get_score();
+//            cout << "Best 10 rules:" << endl;
+//            for (size_t j = 0; j < 10; j++) {
+//                cout << population[j].get_rule_clean() << " with score " << population[j].get_score() << endl;
+//            }
+//            cout << "Population size: " << population.size() << endl;
+//        }
     }
 }
 
-pair<Rule, Rule> Genetic::select_parents() {
-    for (auto it = population.begin(); it != population.end(); it++) {
-        Rule& first = *it;
-        Rule& second = *(it+1);
-        pair<Rule, Rule> parents = make_pair(first, second);
-        if (!breed_pairs.contains(parents)) {
-            breed_pairs.insert(parents);
-            return parents;
+vector<pair<Rule, Rule>> Genetic::select_parents(SelectionStrategy select_strat, size_t village_idx) {
+    if (select_strat == SelectionStrategy::TOURNAMENT) {
+        Village pop = this->villages[0];
+        size_t pop_size = pop.size();
+        size_t tournament_count = (size_t) (((float) pop_size) * POPULATION_GROWTH_RATE);
+        size_t tournament_size = (size_t) (pop_size * TOURNAMENT_PCT);
+        Village mating_pool;
+        for (size_t idx = 0; idx < tournament_count * 2; idx++) {
+            Village shuffled(pop);
+            unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
+            std::shuffle(shuffled.begin(), shuffled.end(), std::default_random_engine(seed));
+            Rule top(":");
+            float top_score = 0.0f;
+            for (size_t j = 0; j < tournament_size; j++) {
+                Rule r = shuffled[j];
+                if (top_score == 0.0f || r.get_score() > top_score) {
+                    top = r;
+                }
+            }
+            mating_pool.push_back(top);
         }
+        vector<pair<Rule, Rule>> mating_pairs;
+        for (size_t idx = 0; idx < tournament_count; idx++) {
+            mating_pairs.push_back(make_pair(mating_pool[idx], mating_pool[tournament_count + idx]));
+        }
+        return mating_pairs;
+    } else {
+//        for (auto it = population.begin(); it != population.end(); it++) {
+//            Rule& first = *it;
+//            Rule& second = *(it+1);
+//            pair<Rule, Rule> parents = make_pair(first, second);
+//            if (!breed_pairs.contains(parents)) {
+//                breed_pairs.insert(parents);
+//                return parents;
+//            }
+//        }
+//        cout << "No parents found, returning first two rules" << endl;
+//        return make_pair(population.front(), population.front());
     }
-    cout << "No parents found, returning first two rules" << endl;
-    return make_pair(population.front(), population.front());
 }
 
 vector<Rule> Genetic::crossover(const pair<Rule, Rule>& parents) {
@@ -247,9 +279,6 @@ vector<Rule> Genetic::crossover(const pair<Rule, Rule>& parents) {
 }
 
 Rule Genetic::mutate(const Rule &rule, MutationType type) {
-    if (type == NO_MUTATION) {
-        return rule;
-    }
     auto rule_primitives = rule.get_primitives();
     size_t prim_count = rule_primitives.size();
     size_t idx = random_integer(0, prim_count - ((type == INSERT) ? 0 : 1));
@@ -272,7 +301,7 @@ Rule Genetic::mutate(const Rule &rule, MutationType type) {
         case DUPLICATE:
             rule_primitives.insert(it, rule_primitives[idx]);
             break;
-        case NO_MUTATION:
+        default:
             return rule;
     }
     return Rule::join_primitives(rule_primitives);
@@ -309,5 +338,19 @@ float Genetic::evaluate_fitness(const Rule &rule, const Rule &parent_a, const Ru
         cout << "No-op rule detected: " << rule.get_rule_clean() << endl;
     }
     return score;
+}
+
+rax *build_target_password_tree(const vector<string>& target_passwords) {
+    rax *pw_tree_targets = raxNew();
+    const size_t pw_cnt = target_passwords.size();
+    for (size_t idx = 0; idx < target_passwords.size(); idx++) {
+        string password = target_passwords.at(idx);
+        auto *pdp = new PasswordData(true, (pw_cnt - idx) / ((float) pw_cnt + 1.0), idx);
+        if (0 == raxTryInsert(pw_tree_targets, (unsigned char*) password.c_str(), password.size()+1, (void*) pdp, NULL)) {
+            // this password has already been inserted
+            continue;
+        }
+    }
+    return pw_tree_targets;
 }
 
