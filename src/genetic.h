@@ -48,12 +48,12 @@ typedef std::vector<Village> Villages;
 
 class Genetic {
     public:
-        explicit Genetic(std::vector<Rule>&,
-                std::vector<std::string>&, std::vector<std::string>&, rax*,
-                size_t, StrengthMap);
+        explicit Genetic(std::vector<Rule>&, std::vector<std::string>&, std::vector<std::string>&,
+                rax*, std::vector<std::string>&, rax*,size_t, StrengthMap);
         ~Genetic();
         Rule mutate(const Rule&, MutationType);
         void run(size_t, EvolutionStrategy);
+        void delete_trees();
     private:
         void add_to_population(Rule&, const Rule&, const Rule&, const int&);
         std::vector<Rule> crossover(const std::pair<Rule, Rule>&);
@@ -70,12 +70,15 @@ class Genetic {
         std::vector<std::string> primitives;
         // TODO: rank by strength
         std::vector<std::string> target_passwords;
+    std::vector<std::string> initial_passwords;
         std::vector<std::vector<std::string>> ecosystems;
         StrengthMap password_strengths;
         rax *pw_tree_targets;
+        rax *pw_tree_initial;
         size_t max_pop;
 };
 
 rax *build_target_password_tree(const std::vector<std::string> &target_passwords);
+rax *build_initial_password_tree(const std::vector<std::string> &initial_passwords);
 
 #endif //PASSWORDS_GENETIC_H

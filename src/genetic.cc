@@ -18,10 +18,12 @@ extern "C" {
 
 using namespace std;
 
-Genetic::Genetic(vector<Rule> &rules, vector<string> &primitives, vector<string> &target_passwords, rax *pw_tree_targets, size_t max_pop, StrengthMap sm)
+Genetic::Genetic(vector<Rule> &rules, vector<string> &primitives, vector<string> &target_passwords, rax *pw_tree_targets, vector<string> &initial_passwords, rax *pw_tree_initial, size_t max_pop, StrengthMap sm)
     : primitives(primitives),
       target_passwords(target_passwords),
       pw_tree_targets(pw_tree_targets),
+      initial_passwords(initial_passwords),
+      pw_tree_initial(pw_tree_initial),
       max_pop(max_pop),
       password_strengths(sm) {
     population_vec = rules;
@@ -54,16 +56,16 @@ void Genetic::add_to_population(Rule &rule, const Rule& parent_a, const Rule& pa
 }
 
 
-// TODO: make village fitness the RPP
+//make village fitness the RPP
 size_t Genetic::evaluate_population_fitness(vector<Rule> pop) {
-    // rpp is the number of rules/ 100*(cracked/hashed)-6.33
+    // rpp is the number of rules/ 100*(cracked/hashed)
     // cracked is number of passwords cracked by an entire village (so don't include passwords already cracked by the village)
-    //what is hashed value here?
+    //what is hashed value here? the number of initial passwords
 
     // get the number of unique password targets hit by a rule set
     std::set<string> unique_hits;
     for (auto &rule : pop) {
-        for (auto &pw : this->target_passwords) {
+        for (auto &pw : this->initial_passwords) {
             string new_pw = rule.apply_rule(pw);
             if (new_pw == pw) continue; // noop
             if (in_radix(this->pw_tree_targets, new_pw)) {
@@ -72,7 +74,7 @@ size_t Genetic::evaluate_population_fitness(vector<Rule> pop) {
         }
     }
     int num_cracked = unique_hits.size();
-    float rpp = pop.size()/ 100 *(num_cracked) -6.33;
+    float rpp = pop.size()/ 100 *(num_cracked/raxSize(this->pw_tree_initial));
     return rpp;
     /*
     size_t score = 0;
@@ -129,23 +131,17 @@ void Genetic::run(size_t num_generations, EvolutionStrategy strategy) {
              * second group by an offset of idx to prevent having to
              * shuffle/choose randomly.
              */
-            // TODO: prune worst-performing villages
+            // prune worst-performing villages
             // prune if max # of villages is exceeded, to keep same number of villages
             if (subgroup_evals.size() > VILLAGE_COUNT) {
                 cout << "Pruning worst-performing villages..." << endl;
-                size_t remove_count = subgroup_evals.size() - POPULATION_PARTITIONS;
+                size_t remove_count = subgroup_evals.size() - VILLAGE_COUNT;
                 for (size_t j = 0; j < remove_count; j++) {
                     cout << "Dropped village: " << &subgroup_evals.back().first << " with score "
                          << subgroup_evals.back().second << endl;
                     subgroup_evals.pop_back();
                 }
             }
-            // OR:
-            // prune a set number of villages each time
-            // then replace them with a set number of villages to add
-            cout << "Pruning worst-performing village..." << endl;
-            cout << "Dropped village: " << &subgroup_evals.back().first << " with score "
-                 << subgroup_evals.back().second << endl;
 
             // TODO: CROSSOVER
             /*
@@ -160,13 +156,6 @@ void Genetic::run(size_t num_generations, EvolutionStrategy strategy) {
             // prune a set number of villages each time (currently just one)
             // then replace with a set number of villages to add
             // drop a set number of villages or a random number? below some threshold?
-            cout << "Pruning villages..." << endl;
-            int remove_count = 1;
-            for (int j = 0; j < remove_count; j++) {
-                cout << "Dropped village: " << &subgroup_evals.back().first << " with score "
-                     << subgroup_evals.back().second << endl;
-                subgroup_evals.pop_back();
-            }
             return;
         }
     } else {
@@ -347,12 +336,12 @@ float Genetic::evaluate_fitness(const Rule &rule, const Rule &parent_a, const Ru
     // generate vector of N random positions
     vector<size_t> positions;
     for (size_t i = 0; i < N; i++) {
-        positions.push_back(random_integer(0, this->target_passwords.size() - 1));
+        positions.push_back(random_integer(0, this->initial_passwords.size() - 1));
     }
     // transform a password (passwords set in constructor)
     int no_op_count = 0;
     for (unsigned long position : positions) {
-        string password = this->target_passwords[position];
+        string password = this->initial_passwords[position];
 	    //apply rule
     	string new_pw = rule.apply_rule(password);
         string new_pw_parent_a = parent_a.apply_rule(password);
@@ -386,4 +375,64 @@ rax *build_target_password_tree(const vector<string>& target_passwords) {
     }
     return pw_tree_targets;
 }
+
+rax *build_initial_password_tree(const vector<string>& initial_passwords) {
+    rax *pw_tree_initial = raxNew();
+    const size_t pw_cnt = initial_passwords.size();
+    for (size_t idx = 0; idx < initial_passwords.size(); idx++) {
+        string password = initial_passwords.at(idx);
+        auto *pdp = new PasswordData(true, (pw_cnt - idx) / ((float) pw_cnt + 1.0), idx);
+        if (0 == raxTryInsert(pw_tree_initial, (unsigned char*) password.c_str(), password.size()+1, (void*) pdp, NULL)) {
+            // this password has already been inserted
+            continue;
+        }
+    }
+    return pw_tree_initial;
+}
+void Genetic::delete_trees() {
+    raxIterator it;
+    raxStart(&it, pw_tree_targets);
+    raxSeek(&it, "^", NULL, 0);
+    while (raxNext(&it)) {
+        delete (PasswordData*) it.data;
+    }
+    raxStop(&it);
+
+    raxStart(&it, pw_tree_initial);
+    raxSeek(&it, "^", NULL, 0);
+    while (raxNext(&it)) {
+        delete (PasswordData*) it.data;
+    }
+    raxStop(&it);
+
+    raxFree(pw_tree_targets);
+    raxFree(pw_tree_initial);
+}
+
+//TO DO: try to generalize the methods to apply to both trees at once
+/*
+rax *build_password_tree(const vector<string>& passwords) {
+    rax *pw_tree_initial = raxNew();
+    const size_t pw_cnt = passwords.size();
+    for (size_t idx = 0; idx < passwords.size(); idx++) {
+        string password = passwords.at(idx);
+        auto *pdp = new PasswordData(true, (pw_cnt - idx) / ((float) pw_cnt + 1.0), idx);
+        if (0 == raxTryInsert(pw_tree_initial, (unsigned char*) password.c_str(), password.size()+1, (void*) pdp, NULL)) {
+            // this password has already been inserted
+            continue;
+        }
+    }
+    return pw_tree_initial;
+}
+
+delete_tree(rax* tree) {
+    raxStart(&it, tree);
+    raxSeek(&it, "^", NULL, 0);
+    while (raxNext(&it)) {
+    delete (PasswordData*) it.data;
+    }
+    raxStop(&it);
+    raxFree(tree);
+}
+*/
 

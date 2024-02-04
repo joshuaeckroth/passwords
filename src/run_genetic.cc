@@ -10,13 +10,22 @@ extern "C" {
 #include <rax.h>
 }
 
+/*program args--doesn't like when password sets are included
+rules/best64.rule
+rules/primitives.rule
+data/rock_you-10.txt
+data/passwords.txt
+10
+collective
+xyz
+*/
 using namespace std;
 
 int main(int argc, const char **argv) {
     if (argc != 6) {
         cerr << "Usage: "
             << argv[0]
-            << "\n  <initial population>\n  <primitives for mutations>\n  <password targets>\n  <cycles>"
+            << "\n  <initial population>\n  <primitives for mutations>\n  <password targets>\n  <initial passwords>\n <cycles>"
             << "\n  <evolution strategy: 'individual|collective'>"
             << "\n <password distributions>"
             << endl;
@@ -25,10 +34,11 @@ int main(int argc, const char **argv) {
     const char *initial_population_path = argv[1];
     const char *primitives_path = argv[2];
     const char *password_targets_path = argv[3];
-    int cycles = atoi(argv[4]);
-    const char *strategy = argv[5];
+    const char *initial_passwords_path = argv[4];
+    int cycles = atoi(argv[5]);
+    const char *strategy = argv[6];
     // for computing password strengths
-    const char *pw_distribution_path = argv[6];
+    const char *pw_distribution_path = argv[7];
     StrengthMap password_strengths;
     PGV partial_guess_data;
     partial_guess_data = get_pguess_metrics(pw_distribution_path);
@@ -44,16 +54,11 @@ int main(int argc, const char **argv) {
     cout << "*** Loading password targets from " << password_targets_path << endl;
     vector<string> target_passwords = PasswordLoader::load_passwords(password_targets_path);
     rax *pw_tree_targets = build_target_password_tree(target_passwords);
+    cout << "*** Loading initial passwords from " << initial_passwords_path << endl;
+    vector<string> initial_passwords = PasswordLoader::load_passwords(initial_passwords_path);
+    rax *pw_tree_initial = build_initial_password_tree(initial_passwords);
     cout << "*** Starting genetic algorithm with " << cycles << " cycles" << endl;
-    Genetic genetic(rules, primitives, target_passwords, pw_tree_targets, cycles, password_strengths);
+    Genetic genetic(rules, primitives, target_passwords, pw_tree_targets, initial_passwords, pw_tree_initial, cycles, password_strengths);
     genetic.run(cycles, ("collective" == string(strategy)) ? COLLECTIVE : INDIVIDUAL);
-    raxIterator it;
-    raxStart(&it, pw_tree_targets);
-    raxSeek(&it, "^", NULL, 0);
-    while (raxNext(&it)) {
-        delete (PasswordData*) it.data;
-    }
-    raxStop(&it);
-    raxFree(pw_tree_targets);
-
+    genetic.delete_trees();
 }
