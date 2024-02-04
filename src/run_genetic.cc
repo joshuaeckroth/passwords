@@ -10,19 +10,14 @@ extern "C" {
 #include <rax.h>
 }
 
-/*program args--doesn't like when password sets are included
-rules/best64.rule
-rules/primitives.rule
-data/rock_you-10.txt
-data/passwords.txt
-10
-collective
-xyz
+/*to run code:
+ * make genetic
+./bin/genetic rules/best64.rule rules/primitives.rule data/rockyou-10.txt data/passwords.txt 10 collective xyz
 */
 using namespace std;
 
 int main(int argc, const char **argv) {
-    if (argc != 6) {
+    if (argc != 8) {
         cerr << "Usage: "
             << argv[0]
             << "\n  <initial population>\n  <primitives for mutations>\n  <password targets>\n  <initial passwords>\n <cycles>"
