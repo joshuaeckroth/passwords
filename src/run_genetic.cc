@@ -20,9 +20,13 @@ int main(int argc, const char **argv) {
     if (argc != 8) {
         cerr << "Usage: "
             << argv[0]
-            << "\n  <initial population>\n  <primitives for mutations>\n  <password targets>\n  <initial passwords>\n <cycles>"
-            << "\n  <evolution strategy: 'individual|collective'>"
-            << "\n <password distributions>"
+            << "\n  <initial population> e.g. rules/best64.rule"
+            << "\n  <primitives for mutations> e.g. rules/primitives.rule"
+            << "\n  <password targets> e.g. data/rockyou-1k.txt"
+            << "\n  <initial passwords> e.g. data/rockyou-100.txt"
+            << "\n  <cycles> e.g. 10"
+            << "\n  <evolution strategy: 'individual|collective'> e.g. collective"
+            << "\n  <password distributions> e.g. data/pguess_metrics_cache.tsv"
             << endl;
         return -1;
     }

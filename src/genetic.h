@@ -58,7 +58,7 @@ class Genetic {
         void add_to_population(Rule&, const Rule&, const Rule&, const int&);
         std::vector<Rule> crossover(const std::pair<Rule, Rule>&);
         float evaluate_fitness(const Rule&, const Rule&, const Rule&, const int&);
-        size_t evaluate_population_fitness(std::vector<Rule>);
+        float evaluate_population_fitness(std::vector<Rule>);
         std::vector<std::pair<Rule, Rule>> select_parents(
             SelectionStrategy s = TOURNAMENT,
             size_t village_idx = 0

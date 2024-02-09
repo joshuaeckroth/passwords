@@ -14,7 +14,7 @@ namespace RuleLoader {
     std::vector<T> load_rules(const char* path) {
         FILE *fp_rules;
         if ((fp_rules = fopen(path, "r")) == nullptr) {
-            std::cerr << "Couldn't open rule file: " << strerror(errno) << std::endl;
+            std::cerr << "Couldn't open rule file " << path << ": " << strerror(errno) << std::endl;
             throw std::runtime_error(strerror(errno));
         }
         int rule_count = 0;

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CLionExternalBuildManager">
+    <target id="439f52a8-5a18-41b8-ae0d-5ac9dd15b4f8" name="genetic" defaultType="MAKE">
+      <configuration id="aca56235-b060-4ad5-850a-a76e9f722195" name="genetic">
+        <build type="MAKE">
+          <make targetName="genetic" />
+        </build>
+        <clean type="MAKE">
+          <make targetName="clean" />
+        </clean>
+      </configuration>
+    </target>
+  </component>
+</project>

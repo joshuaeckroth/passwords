@@ -3,9 +3,9 @@
 #include <iostream>
 #include <functional>
 #include <random>
-#include <numeric>
 #include <utility>
 #include <thread>
+#include <chrono>
 #include "genetic.h"
 #include "tree_builder.h"
 #include "rule.h"
@@ -19,7 +19,15 @@ extern "C" {
 
 using namespace std;
 
-Genetic::Genetic(vector<Rule> &rules, vector<string> &primitives, vector<string> &target_passwords, rax *pw_tree_targets, vector<string> &initial_passwords, rax *pw_tree_initial, size_t max_pop, StrengthMap sm)
+Genetic::Genetic(
+        vector<Rule> &rules,
+        vector<string> &primitives,
+        vector<string> &target_passwords,
+        rax *pw_tree_targets,
+        vector<string> &initial_passwords,
+        rax *pw_tree_initial,
+        size_t max_pop,
+        StrengthMap sm)
     : primitives(primitives),
       target_passwords(target_passwords),
       pw_tree_targets(pw_tree_targets),
@@ -58,7 +66,7 @@ void Genetic::add_to_population(Rule &rule, const Rule& parent_a, const Rule& pa
 
 
 //make village fitness the RPP
-size_t Genetic::evaluate_population_fitness(vector<Rule> pop) {
+float Genetic::evaluate_population_fitness(vector<Rule> pop) {
     // rpp is the number of rules/ 100*(cracked/hashed)
     // cracked is number of passwords cracked by an entire village (so don't include passwords already cracked by the village)
     //what is hashed value here? the number of initial passwords
@@ -66,6 +74,7 @@ size_t Genetic::evaluate_population_fitness(vector<Rule> pop) {
     // get the number of unique password targets hit by a rule set
     size_t target_count = this->target_passwords.size();
     size_t initial_count = this->initial_passwords.size();
+    // TODO: cache this
     static float pct_cracked_no_rule = [&]() -> float {
         size_t cracked_count = 0;
         for (string &pw : this->initial_passwords) {
@@ -73,26 +82,41 @@ size_t Genetic::evaluate_population_fitness(vector<Rule> pop) {
                 cracked_count++;
             }
         }
-        return (target_count / (float) cracked_count) * 100.0f;
+        return (cracked_count / (float) target_count) * 100.0f;
     }();
+    cout << "pct cracked no rule: " << pct_cracked_no_rule << endl;
     std::set<string> unique_hits;
     for (auto &rule : pop) {
         for (auto &pw : this->initial_passwords) {
+            unique_hits.insert(pw); // add all initial passwords to unique hits (to subtract from later)
             string new_pw = rule.apply_rule(pw);
             if (new_pw == pw) continue; // noop
+            //cout << "rule: " << rule.get_rule_clean() << " applied to " << pw << " yields " << new_pw << endl;
             if (in_radix(this->pw_tree_targets, new_pw)) {
+                cout << "hit: " << new_pw << endl;
                 auto old_score = rule.get_score();
                 auto search = this->password_strengths.find(new_pw);
                 auto new_score = old_score + (
                     (search != this->password_strengths.end()) ? search->second : get_strength_unseen()
                 );
+                cout << "old score: " << old_score << ", new score: " << new_score << endl;
                 rule.set_score(new_score); 
                 unique_hits.insert(new_pw);
+                cout << "unique hits: " << unique_hits.size() << endl;
             }
         }
     }
     int num_cracked = unique_hits.size();
-    float rpp = (float) pop.size() / ((100.0f * ((float) num_cracked / (float) initial_count)) - pct_cracked_no_rule);
+    cout << "num cracked: " << num_cracked << endl;
+    // parts of the rpp calculation:
+    cout << "pop size: " << pop.size() << endl;
+    cout << "target count: " << target_count << endl;
+    cout << "num cracked: " << num_cracked << endl;
+    cout << "pct cracked: " << (100.0f * ((float) num_cracked / (float) target_count)) << endl;
+    cout << "pct cracked no rule: " << pct_cracked_no_rule << endl;
+    cout << "rpp divider: " << (100.0f * ((float) num_cracked / (float) target_count)) - pct_cracked_no_rule << endl;
+    cout << "rpp: " << (float) pop.size() / ((100.0f * ((float) num_cracked / (float) target_count)) - pct_cracked_no_rule) << endl;
+    float rpp = (float) pop.size() / ((100.0f * ((float) num_cracked / (float) target_count)) - pct_cracked_no_rule);
     return rpp;
     /*
     size_t score = 0;
@@ -118,7 +142,7 @@ void Genetic::run(size_t num_generations, EvolutionStrategy strategy) {
         }
         for (size_t idx = 0; idx < num_generations; idx++) {
             size_t num_villages = this->villages.size();
-            cout << "*** Generation: " << idx + 1 << endl;
+            cout << "*** Generation: " << idx + 1 << ", village count: " << num_villages << endl;
             /* 
              * Select individuals for mating...
              * For population level fitness we care about
@@ -127,9 +151,10 @@ void Genetic::run(size_t num_generations, EvolutionStrategy strategy) {
              * of passwords cracked by a rule
              */
             // evaluate fitness of each village (RPP)
-            std::vector<std::pair<Village, size_t>> subgroup_evals;
+            std::vector<std::pair<Village, float>> subgroup_evals;
             for (auto &village : this->villages) {
-                size_t fitness = this->evaluate_population_fitness(village);
+                float fitness = this->evaluate_population_fitness(village);
+                cout << "Village fitness: " << fitness << endl;
                 subgroup_evals.push_back(make_pair(village, fitness));
             }
             // select parents from each village
@@ -165,12 +190,12 @@ void Genetic::run(size_t num_generations, EvolutionStrategy strategy) {
 #else
             for (size_t vidx = 0; vidx < num_villages; vidx++) {
                 auto parents = this->select_parents(TOURNAMENT, vidx);
+                for (auto &p : parents) {
+                    cout << "Village " << vidx << " parents: " << p.first.get_rule_clean() << " and " << p.second.get_rule_clean() << endl;
+                }
                 all_parents.push_back(parents);
             }
 #endif
-            for (auto &group : subgroup_evals) {
-                cout << "Fitness: " << group.second << endl;
-            }
             /*
              * Mate individuals "randomly" from two subgroups deemed
              * most effective. Randomly to prevent the same pairs
@@ -191,20 +216,36 @@ void Genetic::run(size_t num_generations, EvolutionStrategy strategy) {
                 }
             }
 
-            // TODO: CROSSOVER
             /*
-             * Mutate some small number of individuals
+             * Crossover: Merge/breed some small number of individuals
              */
-            // TODO: MUTATION
-            /*
-             * Add new group of individuals to the population to
-             * replace a weaker group of individuals
-             */
-            // TODO: Replace worst-performing group in population with new group
-            // prune a set number of villages each time (currently just one)
-            // then replace with a set number of villages to add
-            // drop a set number of villages or a random number? below some threshold?
-            return;
+            for(size_t i = 0; i < num_villages; i++) {
+                auto &village = subgroup_evals[i].first;
+                auto &parents = all_parents[i];
+                cout << "Crossover for village " << i << "..." << endl;
+                for(auto &p : parents) {
+                    cout << "Village " << i << " parents: " << p.first.get_rule_clean() << " and " << p.second.get_rule_clean() << endl;
+                    vector<Rule> children = crossover(p);
+                    for (Rule child: children) {
+                        if (child.get_tokens().size() > 10) {
+                            cout << "Skipping child with too many tokens: " << child.get_rule_clean() << endl;
+                            continue;
+                        }
+                        cout << "child: " << child.get_rule_clean() << endl;
+                        // select mutation type
+                        size_t type_idx = random_integer(0, MUTATION_TYPE_SENTINEL - 1);
+                        auto type = (MutationType) type_idx;
+                        child = mutate(child, type);
+                        cout << "mutated child: " << child.get_rule_clean() << endl;
+                        string child_simplified_str = simplify_rule(child.get_rule_clean());
+                        cout << "Child: " << child.get_rule_clean() << " simplified to: " << child_simplified_str << endl;
+                        if (!child_simplified_str.empty()) {
+                            Rule child_simplified = Rule(child_simplified_str);
+                            add_to_population(child_simplified, parents[0].first, parents[0].second, subgroup_evals[i].second);
+                        }
+                    }
+                }
+            }
         }
     } else {
 //        size_t top_score = 0;
@@ -252,7 +293,7 @@ void Genetic::run(size_t num_generations, EvolutionStrategy strategy) {
 
 vector<pair<Rule, Rule>> Genetic::select_parents(SelectionStrategy select_strat, size_t village_idx) const {
     if (select_strat == SelectionStrategy::TOURNAMENT) {
-        Village pop = this->villages[0];
+        Village pop = this->villages[village_idx];
         size_t pop_size = pop.size();
         size_t tournament_count = (size_t) (((float) pop_size) * POPULATION_GROWTH_RATE);
         size_t tournament_size = (size_t) (pop_size * TOURNAMENT_PCT);
@@ -290,6 +331,7 @@ vector<pair<Rule, Rule>> Genetic::select_parents(SelectionStrategy select_strat,
 //        }
 //        cout << "No parents found, returning first two rules" << endl;
 //        return make_pair(population.front(), population.front());
+        return {};
     }
 }
 

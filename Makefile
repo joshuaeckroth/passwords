@@ -45,7 +45,7 @@ GENTREE_OBJS = $(subst .cc,.o,$(GENTREE_SRCS)) src/rax.o
 GENETIC_SRCS = src/run_genetic.cc src/genetic.cc src/util.cc src/rule_loader.cc src/password_loader.cc src/rule.cc src/password_data.cc src/rule_data.cc src/tree_builder.cc src/analyze_tree.cc src/partial_guessing.cc
 GENETIC_OBJS = $(subst .cc,.o,$(GENETIC_SRCS)) src/rax.o
 
-all: gentree rule_regex_exp
+all: genetic
 
 $(HC_ARCHIVE):
 	DEBUG=1 cd external/hashcat && make obj/combined.NATIVE.a
