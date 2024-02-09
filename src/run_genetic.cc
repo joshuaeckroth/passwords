@@ -37,6 +37,7 @@ int main(int argc, const char **argv) {
     StrengthMap password_strengths;
     PGV partial_guess_data;
     partial_guess_data = get_pguess_metrics(pw_distribution_path);
+    (void) compute_strength_unseen(partial_guess_data);
     password_strengths = make_strength_map(partial_guess_data);
     cout << "*** Loading initial population from " << initial_population_path << endl;
     vector<string> rules_vec = RuleLoader::load_rules<string>(initial_population_path);

@@ -62,16 +62,14 @@ class Genetic {
         std::vector<std::pair<Rule, Rule>> select_parents(
             SelectionStrategy s = TOURNAMENT,
             size_t village_idx = 0
-        );
+        ) const;
         std::set<std::pair<Rule, Rule>> breed_pairs;
         std::deque<Rule> population;
         Villages villages;
         std::vector<Rule> population_vec;
         std::vector<std::string> primitives;
-        // TODO: rank by strength
         std::vector<std::string> target_passwords;
-    std::vector<std::string> initial_passwords;
-        std::vector<std::vector<std::string>> ecosystems;
+        std::vector<std::string> initial_passwords;
         StrengthMap password_strengths;
         rax *pw_tree_targets;
         rax *pw_tree_initial;

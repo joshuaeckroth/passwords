@@ -5,6 +5,7 @@
 #include <random>
 #include <numeric>
 #include <utility>
+#include <thread>
 #include "genetic.h"
 #include "tree_builder.h"
 #include "rule.h"
@@ -63,18 +64,35 @@ size_t Genetic::evaluate_population_fitness(vector<Rule> pop) {
     //what is hashed value here? the number of initial passwords
 
     // get the number of unique password targets hit by a rule set
+    size_t target_count = this->target_passwords.size();
+    size_t initial_count = this->initial_passwords.size();
+    static float pct_cracked_no_rule = [&]() -> float {
+        size_t cracked_count = 0;
+        for (string &pw : this->initial_passwords) {
+            if (in_radix(this->pw_tree_targets, pw)) {
+                cracked_count++;
+            }
+        }
+        return (target_count / (float) cracked_count) * 100.0f;
+    }();
     std::set<string> unique_hits;
     for (auto &rule : pop) {
         for (auto &pw : this->initial_passwords) {
             string new_pw = rule.apply_rule(pw);
             if (new_pw == pw) continue; // noop
             if (in_radix(this->pw_tree_targets, new_pw)) {
+                auto old_score = rule.get_score();
+                auto search = this->password_strengths.find(new_pw);
+                auto new_score = old_score + (
+                    (search != this->password_strengths.end()) ? search->second : get_strength_unseen()
+                );
+                rule.set_score(new_score); 
                 unique_hits.insert(new_pw);
             }
         }
     }
     int num_cracked = unique_hits.size();
-    float rpp = pop.size()/ 100 *(num_cracked/raxSize(this->pw_tree_initial));
+    float rpp = (float) pop.size() / ((100.0f * ((float) num_cracked / (float) initial_count)) - pct_cracked_no_rule);
     return rpp;
     /*
     size_t score = 0;
@@ -97,10 +115,10 @@ void Genetic::run(size_t num_generations, EvolutionStrategy strategy) {
         for (size_t idx = 0; idx < VILLAGE_COUNT; idx++) {
             Village v(this->population_vec);
             this->villages.push_back(v);
-            vector<string> ecosystem;
-            // TODO: create ecosystems
         }
         for (size_t idx = 0; idx < num_generations; idx++) {
+            size_t num_villages = this->villages.size();
+            cout << "*** Generation: " << idx + 1 << endl;
             /* 
              * Select individuals for mating...
              * For population level fitness we care about
@@ -116,10 +134,40 @@ void Genetic::run(size_t num_generations, EvolutionStrategy strategy) {
             }
             // select parents from each village
             vector<vector<pair<Rule, Rule>>> all_parents;
-            for (size_t vidx = 0; vidx < this->villages.size(); vidx++) {
+#ifdef USE_PARALLEL
+#ifndef THREAD_COUNT
+            static size_t max_thread_count = std::thread::hardware_concurrency();
+#else
+            // if processor supports multiple logical cores per physical core
+            // (ex: hyperthreading) this can be manually set to the number of
+            // physical cores - TODO: this is a HACK, fix later
+            static size_t max_thread_count = THREAD_COUNT;
+#endif
+            all_parents.reserve(num_villages);
+            std::vector<std::thread> threads;
+//            threads.reserve(num_villages);
+            cout << "*** Creating worker threads for parent selection..." << endl;
+            for (size_t vidx = 0; vidx < num_villages; vidx++) {
+                cout << "*** Creating thread " << vidx + 1 << endl;
+                std::thread t(
+                    [&](size_t idx) {
+                        auto parents = this->select_parents(TOURNAMENT, idx);
+                        all_parents[idx] = parents;
+                    },
+                    vidx
+                );
+                threads.push_back(std::move(t));
+            }
+            for (auto &thread : threads) {
+                thread.join();
+            }
+            cout << "*** All threads joined..." << endl;
+#else
+            for (size_t vidx = 0; vidx < num_villages; vidx++) {
                 auto parents = this->select_parents(TOURNAMENT, vidx);
                 all_parents.push_back(parents);
             }
+#endif
             for (auto &group : subgroup_evals) {
                 cout << "Fitness: " << group.second << endl;
             }
@@ -202,13 +250,14 @@ void Genetic::run(size_t num_generations, EvolutionStrategy strategy) {
     }
 }
 
-vector<pair<Rule, Rule>> Genetic::select_parents(SelectionStrategy select_strat, size_t village_idx) {
+vector<pair<Rule, Rule>> Genetic::select_parents(SelectionStrategy select_strat, size_t village_idx) const {
     if (select_strat == SelectionStrategy::TOURNAMENT) {
         Village pop = this->villages[0];
         size_t pop_size = pop.size();
         size_t tournament_count = (size_t) (((float) pop_size) * POPULATION_GROWTH_RATE);
         size_t tournament_size = (size_t) (pop_size * TOURNAMENT_PCT);
         Village mating_pool;
+        cout << "*** Running tournaments..." << endl;
         for (size_t idx = 0; idx < tournament_count * 2; idx++) {
             Village shuffled(pop);
             unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
@@ -223,6 +272,7 @@ vector<pair<Rule, Rule>> Genetic::select_parents(SelectionStrategy select_strat,
             }
             mating_pool.push_back(top);
         }
+        cout << "*** Ran tournaments..." << endl;
         vector<pair<Rule, Rule>> mating_pairs;
         for (size_t idx = 0; idx < tournament_count; idx++) {
             mating_pairs.push_back(make_pair(mating_pool[idx], mating_pool[tournament_count + idx]));

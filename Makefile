@@ -1,4 +1,17 @@
 CXXFLAGS += -std=c++20 -O3 -g
+
+ifdef USE_PARALLEL
+CXXFLAGS += -DUSE_PARALLEL
+endif
+
+ifdef DO_PROFILE
+CXXFLAG += -pg
+endif
+
+ifdef THREAD_COUNT
+CXXFLAGS += -DTHREAD_COUNT=$(THREAD_COUNT)
+endif
+
 CFLAGS_NATIVE_PW := $(CFLAGS)
 CFLAGS_NATIVE_PW += -DWITH_HWMON
 CFLAGS_NATIVE_PW += -I/opt/homebrew/Cellar/boost/1.82.0_1/include -L/opt/homebrew/Cellar/boost/1.82.0_1/lib -lboost_regex

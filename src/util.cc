@@ -36,6 +36,11 @@ bool in_radix(rax *tree, std::string s) {
     return raxFind(tree, (unsigned char*) s.c_str(), s.size() + 1) != raxNotFound;
 }
 
+//size_t random_poisson(size_t a, size_t b) {
+//    static std::random_device dev;
+//    static std::mt
+//}
+
 //std::string sha1(const char *input) {
 //    unsigned char buffer[20] = {0};
 //    SHA1((const unsigned char*) input, strlen(input), buffer);

@@ -1,1 +1,1 @@
-./bin/genetic rules/primitives.rule rules/primitives.rule data/rockyou-1k.txt 1000 collective
+./bin/genetic rules/best64.rule rules/primitives.rule data/rockyou-1k.txt data/rockyou-1k.txt 100 collective x
