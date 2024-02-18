@@ -103,29 +103,29 @@ float Genetic::evaluate_population_fitness(vector<Rule> pop) {
             if (new_pw == pw) continue; // noop
             // cout << "rule: " << rule.get_rule_clean() << " applied to " << pw << " yields " << new_pw << endl;
             if (in_radix(this->pw_tree_targets, new_pw)) {
-                cout << "hit: " << new_pw << endl;
+                //cout << "hit: " << new_pw << endl;
                 auto old_score = rule.get_score();
                 auto search = this->password_strengths.find(new_pw);
                 auto new_score = old_score + (
                     (search != this->password_strengths.end()) ? search->second : get_strength_unseen()
                 );
-                cout << "old score: " << old_score << ", new score: " << new_score << endl;
+                //cout << "old score: " << old_score << ", new score: " << new_score << endl;
                 rule.set_score(new_score); 
                 unique_hits.insert(new_pw);
-                cout << "unique hits: " << unique_hits.size() << endl;
+                //cout << "unique hits: " << unique_hits.size() << endl;
             }
         }
     }
     int num_cracked = unique_hits.size();
-    cout << "num cracked: " << num_cracked << endl;
+    cout << "--- num cracked: " << num_cracked << endl;
     // parts of the rpp calculation:
-    cout << "pop size: " << pop.size() << endl;
-    cout << "target count: " << target_count << endl;
-    cout << "num cracked: " << num_cracked << endl;
-    cout << "pct cracked: " << (100.0f * ((float) num_cracked / (float) target_count)) << endl;
-    cout << "pct cracked no rule: " << pct_cracked_no_rule << endl;
-    cout << "rpp divider: " << (100.0f * ((float) num_cracked / (float) target_count)) - pct_cracked_no_rule << endl;
-    cout << "rpp: " << (float) pop.size() / ((100.0f * ((float) num_cracked / (float) target_count)) - pct_cracked_no_rule) << endl;
+    cout << "--- pop size: " << pop.size() << endl;
+    cout << "--- target count: " << target_count << endl;
+    cout << "--- num cracked: " << num_cracked << endl;
+    cout << "--- pct cracked: " << (100.0f * ((float) num_cracked / (float) target_count)) << endl;
+    cout << "--- pct cracked no rule: " << pct_cracked_no_rule << endl;
+    cout << "--- rpp divider: " << (100.0f * ((float) num_cracked / (float) target_count)) - pct_cracked_no_rule << endl;
+    cout << "--- rpp: " << (float) pop.size() / ((100.0f * ((float) num_cracked / (float) target_count)) - pct_cracked_no_rule) << endl;
     float rpp = (float) pop.size() / ((100.0f * ((float) num_cracked / (float) target_count)) - pct_cracked_no_rule);
     return rpp;
 }
@@ -145,10 +145,13 @@ void Genetic::run(size_t num_generations, EvolutionStrategy strategy) {
             // evaluate fitness of each village (RPP)
             typedef std::pair<Village, float> vp;
             std::vector<vp> subgroup_evals;
+            size_t j = 1;
             for (auto &village : this->villages) {
+                cout << "*** Evaluating population fitness for village: " << j << endl;
                 float fitness = this->evaluate_population_fitness(village);
                 cout << "Village fitness: " << fitness << endl;
                 subgroup_evals.push_back(make_pair(std::move(village), fitness));
+                j += 1;
             }
             this->villages.clear();
             std::sort(subgroup_evals.begin(), subgroup_evals.end(), [](vp a, vp b) {
@@ -160,12 +163,12 @@ void Genetic::run(size_t num_generations, EvolutionStrategy strategy) {
             subgroup_evals.clear();
             // prune worst-performing villages, stay below VILLAGE_COUNT
             if (num_villages > VILLAGE_COUNT_MAX) {
-                cout << "Pruning worst-performing villages..." << endl;
+                cout << "*** Pruning worst-performing villages..." << endl;
                 size_t remove_count = num_villages - VILLAGE_COUNT_MAX;
                 for (size_t j = 0; j < remove_count; j++) {
                     this->villages.pop_back();
                 }
-                cout << "Dropped " << remove_count << " villages..." << endl;
+                cout << "*** Dropped " << remove_count << " villages..." << endl;
             }
             num_villages = this->villages.size();
             /*
@@ -218,23 +221,23 @@ void Genetic::run(size_t num_generations, EvolutionStrategy strategy) {
              */
             for (size_t i = 0; i < num_villages; i++) {
                 auto &parents = all_parents[i];
-                cout << "Crossover for village " << i << "..." << endl;
+                cout << "*** Crossover for village " << i << "..." << endl;
                 for (auto &p : parents) {
                     auto p1_clean = p.first.get_rule_clean();
                     auto p2_clean = p.second.get_rule_clean();
-                    cout << "Village " << i << " parents: " << p1_clean
-                        << " and " << p2_clean << endl;
+                    //cout << "Village " << i << " parents: " << p1_clean
+                    //    << " and " << p2_clean << endl;
                     vector<Rule> children = crossover(p);
                     for (Rule child: children) {
                         auto child_clean = child.get_rule_clean();
                         if (child.get_tokens().size() > 10) {
-                            cout << "Skipping child with too many tokens: " << child_clean << endl;
+                            //cout << "Skipping child with too many tokens: " << child_clean << endl;
                             continue;
                         }
                         if (child_clean == p1_clean || child_clean == p2_clean) {
-                            cout << "Skipping child identical to one of parents: " << child_clean << endl;
+                            //cout << "Skipping child identical to one of parents: " << child_clean << endl;
                         }
-                        cout << "child: " << child_clean << endl;
+                        //cout << "child: " << child_clean << endl;
                         // maybe mutate
                         bool do_mutate = random_integer(1, 100) <= (size_t) (100 * MUTATION_CHANCE);
                         if (do_mutate) {
@@ -242,10 +245,10 @@ void Genetic::run(size_t num_generations, EvolutionStrategy strategy) {
                             size_t type_idx = random_integer(0, MUTATION_TYPE_SENTINEL - 1);
                             auto type = (MutationType) type_idx;
                             child = mutate(child, type);
-                            cout << "mutated child: " << child_clean << endl;
+                            //cout << "mutated child: " << child_clean << endl;
                         }
                         string child_simplified_str = simplify_rule(child_clean);
-                        cout << "Child: " << child_clean << " simplified to: " << child_simplified_str << endl;
+                        ///cout << "Child: " << child_clean << " simplified to: " << child_simplified_str << endl;
                         if (!child_simplified_str.empty()) {
                             Rule child_simplified = Rule(child_simplified_str);
                             this->add_to_population(std::move(child_simplified));
