@@ -42,6 +42,18 @@ Genetic::Genetic(
 
 Genetic::~Genetic() {}
 
+void Genetic::add_to_population(Rule&& rule) {
+    for (auto &v : this->villages) {
+        if (v.size() < VILLAGE_SIZE_MAX) {
+            v.push_back(std::move(rule));
+            return;
+        }
+    }
+    Village v;
+    v.push_back(std::move(rule));
+    this->villages.push_back(std::move(v));
+}
+
 void Genetic::add_to_population(Rule &rule, const Rule& parent_a, const Rule& parent_b, const int &top_score) {
     if (rule == parent_a || rule == parent_b) {
         return;
@@ -123,7 +135,7 @@ void Genetic::run(size_t num_generations, EvolutionStrategy strategy) {
         /*
          * STEP 1: INITIALIZE POPULATION
          */
-        for (size_t idx = 0; idx < VILLAGE_COUNT_START; idx++) {
+        for (size_t idx = 0; idx < VILLAGE_COUNT_INITIAL; idx++) {
             Village v(this->population_vec);
             this->villages.push_back(v);
         }
@@ -208,15 +220,21 @@ void Genetic::run(size_t num_generations, EvolutionStrategy strategy) {
                 auto &parents = all_parents[i];
                 cout << "Crossover for village " << i << "..." << endl;
                 for (auto &p : parents) {
-                    cout << "Village " << i << " parents: " << p.first.get_rule_clean()
-                        << " and " << p.second.get_rule_clean() << endl;
+                    auto p1_clean = p.first.get_rule_clean();
+                    auto p2_clean = p.second.get_rule_clean();
+                    cout << "Village " << i << " parents: " << p1_clean
+                        << " and " << p2_clean << endl;
                     vector<Rule> children = crossover(p);
                     for (Rule child: children) {
+                        auto child_clean = child.get_rule_clean();
                         if (child.get_tokens().size() > 10) {
-                            cout << "Skipping child with too many tokens: " << child.get_rule_clean() << endl;
+                            cout << "Skipping child with too many tokens: " << child_clean << endl;
                             continue;
                         }
-                        cout << "child: " << child.get_rule_clean() << endl;
+                        if (child_clean == p1_clean || child_clean == p2_clean) {
+                            cout << "Skipping child identical to one of parents: " << child_clean << endl;
+                        }
+                        cout << "child: " << child_clean << endl;
                         // maybe mutate
                         bool do_mutate = random_integer(1, 100) <= (size_t) (100 * MUTATION_CHANCE);
                         if (do_mutate) {
@@ -224,14 +242,13 @@ void Genetic::run(size_t num_generations, EvolutionStrategy strategy) {
                             size_t type_idx = random_integer(0, MUTATION_TYPE_SENTINEL - 1);
                             auto type = (MutationType) type_idx;
                             child = mutate(child, type);
-                            cout << "mutated child: " << child.get_rule_clean() << endl;
+                            cout << "mutated child: " << child_clean << endl;
                         }
-                        string child_simplified_str = simplify_rule(child.get_rule_clean());
-                        cout << "Child: " << child.get_rule_clean() << " simplified to: " << child_simplified_str << endl;
+                        string child_simplified_str = simplify_rule(child_clean);
+                        cout << "Child: " << child_clean << " simplified to: " << child_simplified_str << endl;
                         if (!child_simplified_str.empty()) {
                             Rule child_simplified = Rule(child_simplified_str);
-                            // NOTE: add_to_population is outdated, TODO: fix
-                            // add_to_population(child_simplified, parents[0].first, parents[0].second, subgroup_evals[i].second);
+                            this->add_to_population(std::move(child_simplified));
                         }
                     }
                 }
@@ -434,7 +451,7 @@ float Genetic::evaluate_fitness(const Rule &rule, const Rule &parent_a, const Ru
 		//check password set for hits with the transformed password
 		//transformed password is in the tree
 		if ((raxFind(this->pw_tree_targets, (unsigned char*)new_pw.c_str(), new_pw.size()+1)) != raxNotFound) {
-            score+=1.0;
+            score += 1.0;
         }
     }
     if (no_op_count == N) {

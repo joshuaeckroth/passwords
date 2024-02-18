@@ -13,9 +13,8 @@ extern "C" {
 }
 
 #define POPULATION_SIZE 2500
-#define POPULATION_PARTITIONS 5
-#define VILLAGE_COUNT POPULATION_PARTITIONS
-#define VILLAGE_COUNT_START 5
+#define VILLAGE_SIZE_MAX POPULATION_SIZE
+#define VILLAGE_COUNT_INITIAL 5
 #define VILLAGE_COUNT_MAX 10
 #define POPULATION_GROWTH_RATE 0.1f
 #define TOURNAMENT_PCT 0.5f
@@ -58,6 +57,7 @@ class Genetic {
         void delete_trees();
     private:
         void add_to_population(Rule&, const Rule&, const Rule&, const int&);
+        void add_to_population(Rule&&);
         std::vector<Rule> crossover(const std::pair<Rule, Rule>&);
         float evaluate_fitness(const Rule&, const Rule&, const Rule&, const int&);
         float evaluate_population_fitness(std::vector<Rule>);
