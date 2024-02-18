@@ -31,8 +31,12 @@ Rule::Rule(const Rule& r) : raw(r.raw), clean_rule(r.clean_rule), weight(r.weigh
     tokens = tokenize();
 }
 
-Rule::Rule(const Rule&& r) : raw(std::move(r.raw)), clean_rule(std::move(r.clean_rule)), weight(r.weight), score(r.score) {
-    tokens = tokenize();
+Rule::Rule(Rule&& r) : raw(std::move(r.raw)),
+    clean_rule(std::move(r.clean_rule)),
+    weight(r.weight),
+    score(r.score),
+    tokens(std::move(r.tokens)) {
+    //tokens = tokenize();
 }
 
 Rule& Rule::operator=(const Rule &r) {

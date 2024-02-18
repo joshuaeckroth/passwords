@@ -21,7 +21,7 @@ class Rule {
         explicit Rule(std::string);
         explicit Rule(const char*);
         Rule(const Rule&);
-        Rule(const Rule&&);
+        Rule(Rule&&);
         std::vector<std::string> get_primitives() const;
         static Rule join_primitives(std::vector<std::string>);
         const std::vector<std::string>& get_tokens() const;

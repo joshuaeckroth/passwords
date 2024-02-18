@@ -15,6 +15,8 @@ extern "C" {
 #define POPULATION_SIZE 2500
 #define POPULATION_PARTITIONS 5
 #define VILLAGE_COUNT POPULATION_PARTITIONS
+#define VILLAGE_COUNT_START 5
+#define VILLAGE_COUNT_MAX 10
 #define POPULATION_GROWTH_RATE 0.1f
 #define TOURNAMENT_PCT 0.5f
 // chance for an individual to breed with a member
@@ -49,7 +51,7 @@ typedef std::vector<Village> Villages;
 class Genetic {
     public:
         explicit Genetic(std::vector<Rule>&, std::vector<std::string>&, std::vector<std::string>&,
-                rax*, std::vector<std::string>&, rax*,size_t, StrengthMap);
+                rax*, std::vector<std::string>&, rax*, size_t, StrengthMap);
         ~Genetic();
         Rule mutate(const Rule&, MutationType);
         void run(size_t, EvolutionStrategy);

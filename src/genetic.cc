@@ -123,7 +123,7 @@ void Genetic::run(size_t num_generations, EvolutionStrategy strategy) {
         /*
          * STEP 1: INITIALIZE POPULATION
          */
-        for (size_t idx = 0; idx < VILLAGE_COUNT; idx++) {
+        for (size_t idx = 0; idx < VILLAGE_COUNT_START; idx++) {
             Village v(this->population_vec);
             this->villages.push_back(v);
         }
@@ -131,22 +131,31 @@ void Genetic::run(size_t num_generations, EvolutionStrategy strategy) {
             size_t num_villages = this->villages.size();
             cout << "*** Generation: " << idx + 1 << ", village count: " << num_villages << endl;
             // evaluate fitness of each village (RPP)
-            std::vector<std::pair<Village, float>> subgroup_evals;
+            typedef std::pair<Village, float> vp;
+            std::vector<vp> subgroup_evals;
             for (auto &village : this->villages) {
                 float fitness = this->evaluate_population_fitness(village);
                 cout << "Village fitness: " << fitness << endl;
-                subgroup_evals.push_back(make_pair(village, fitness));
+                subgroup_evals.push_back(make_pair(std::move(village), fitness));
             }
+            this->villages.clear();
+            std::sort(subgroup_evals.begin(), subgroup_evals.end(), [](vp a, vp b) {
+                return a.second > b.second;
+            });
+            for (auto &p : subgroup_evals) {
+                this->villages.push_back(std::move(p.first));
+            }
+            subgroup_evals.clear();
             // prune worst-performing villages, stay below VILLAGE_COUNT
-            if (subgroup_evals.size() > VILLAGE_COUNT) {
+            if (num_villages > VILLAGE_COUNT_MAX) {
                 cout << "Pruning worst-performing villages..." << endl;
-                size_t remove_count = subgroup_evals.size() - VILLAGE_COUNT;
+                size_t remove_count = num_villages - VILLAGE_COUNT_MAX;
                 for (size_t j = 0; j < remove_count; j++) {
-                    cout << "Dropped village: " << &subgroup_evals.back().first << " with score "
-                        << subgroup_evals.back().second << endl;
-                    subgroup_evals.pop_back();
+                    this->villages.pop_back();
                 }
+                cout << "Dropped " << remove_count << " villages..." << endl;
             }
+            num_villages = this->villages.size();
             /*
              * STEP 2: SELECT INDIVIDUALS FOR MATING
              * For population level fitness we care about
@@ -196,7 +205,6 @@ void Genetic::run(size_t num_generations, EvolutionStrategy strategy) {
              * STEP 3: MATE INDIVIDUALS (crossover)
              */
             for (size_t i = 0; i < num_villages; i++) {
-                //auto &village = subgroup_evals[i].first;
                 auto &parents = all_parents[i];
                 cout << "Crossover for village " << i << "..." << endl;
                 for (auto &p : parents) {
