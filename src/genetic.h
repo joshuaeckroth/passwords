@@ -20,7 +20,7 @@ extern "C" {
 // chance for an individual to breed with a member
 // of another village/population instead of its own
 #define GENE_MIGRATION_CHANCE 0.01f
-#define MUTATION_CHANCE 0.02f
+#define MUTATION_CHANCE 0.02f // NOTE: no smaller than 0.01
 
 enum MutationType {
     INSERT,

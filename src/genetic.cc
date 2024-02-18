@@ -74,7 +74,6 @@ float Genetic::evaluate_population_fitness(vector<Rule> pop) {
     // get the number of unique password targets hit by a rule set
     size_t target_count = this->target_passwords.size();
     size_t initial_count = this->initial_passwords.size();
-    // TODO: cache this
     static float pct_cracked_no_rule = [&]() -> float {
         size_t cracked_count = 0;
         for (string &pw : this->initial_passwords) {
@@ -84,14 +83,13 @@ float Genetic::evaluate_population_fitness(vector<Rule> pop) {
         }
         return (cracked_count / (float) target_count) * 100.0f;
     }();
-    cout << "pct cracked no rule: " << pct_cracked_no_rule << endl;
     std::set<string> unique_hits;
     for (auto &rule : pop) {
         for (auto &pw : this->initial_passwords) {
             unique_hits.insert(pw); // add all initial passwords to unique hits (to subtract from later)
             string new_pw = rule.apply_rule(pw);
             if (new_pw == pw) continue; // noop
-            //cout << "rule: " << rule.get_rule_clean() << " applied to " << pw << " yields " << new_pw << endl;
+            // cout << "rule: " << rule.get_rule_clean() << " applied to " << pw << " yields " << new_pw << endl;
             if (in_radix(this->pw_tree_targets, new_pw)) {
                 cout << "hit: " << new_pw << endl;
                 auto old_score = rule.get_score();
@@ -118,24 +116,13 @@ float Genetic::evaluate_population_fitness(vector<Rule> pop) {
     cout << "rpp: " << (float) pop.size() / ((100.0f * ((float) num_cracked / (float) target_count)) - pct_cracked_no_rule) << endl;
     float rpp = (float) pop.size() / ((100.0f * ((float) num_cracked / (float) target_count)) - pct_cracked_no_rule);
     return rpp;
-    /*
-    size_t score = 0;
-    std::set<string> unique_hits;
-    for (auto &rule : pop) {
-        for (auto &pw : this->target_passwords) {
-            string new_pw = rule.apply_rule(pw);
-            if (new_pw == pw) continue; // noop
-            if (in_radix(this->pw_tree_targets, new_pw)) {
-                unique_hits.insert(new_pw);
-            }
-        }
-    }
-    return unique_hits.size();
-    */
 }
 
 void Genetic::run(size_t num_generations, EvolutionStrategy strategy) {
     if (strategy == COLLECTIVE) {
+        /*
+         * STEP 1: INITIALIZE POPULATION
+         */
         for (size_t idx = 0; idx < VILLAGE_COUNT; idx++) {
             Village v(this->population_vec);
             this->villages.push_back(v);
@@ -143,13 +130,6 @@ void Genetic::run(size_t num_generations, EvolutionStrategy strategy) {
         for (size_t idx = 0; idx < num_generations; idx++) {
             size_t num_villages = this->villages.size();
             cout << "*** Generation: " << idx + 1 << ", village count: " << num_villages << endl;
-            /* 
-             * Select individuals for mating...
-             * For population level fitness we care about
-             * RPP (rules per percentage cracked). For
-             * individual fitness we care about the strength
-             * of passwords cracked by a rule
-             */
             // evaluate fitness of each village (RPP)
             std::vector<std::pair<Village, float>> subgroup_evals;
             for (auto &village : this->villages) {
@@ -157,8 +137,24 @@ void Genetic::run(size_t num_generations, EvolutionStrategy strategy) {
                 cout << "Village fitness: " << fitness << endl;
                 subgroup_evals.push_back(make_pair(village, fitness));
             }
-            // select parents from each village
-            vector<vector<pair<Rule, Rule>>> all_parents;
+            // prune worst-performing villages, stay below VILLAGE_COUNT
+            if (subgroup_evals.size() > VILLAGE_COUNT) {
+                cout << "Pruning worst-performing villages..." << endl;
+                size_t remove_count = subgroup_evals.size() - VILLAGE_COUNT;
+                for (size_t j = 0; j < remove_count; j++) {
+                    cout << "Dropped village: " << &subgroup_evals.back().first << " with score "
+                        << subgroup_evals.back().second << endl;
+                    subgroup_evals.pop_back();
+                }
+            }
+            /*
+             * STEP 2: SELECT INDIVIDUALS FOR MATING
+             * For population level fitness we care about
+             * RPP (rules per percentage cracked). For
+             * individual fitness we care about the strength
+             * of passwords cracked by a rule
+             */
+            vector<vector<pair<Rule, Rule>>> all_parents; // parents from each village
 #ifdef USE_PARALLEL
 #ifndef THREAD_COUNT
             static size_t max_thread_count = std::thread::hardware_concurrency();
@@ -170,10 +166,9 @@ void Genetic::run(size_t num_generations, EvolutionStrategy strategy) {
 #endif
             all_parents.reserve(num_villages);
             std::vector<std::thread> threads;
-//            threads.reserve(num_villages);
-            cout << "*** Creating worker threads for parent selection..." << endl;
+            // cout << "*** Creating worker threads for parent selection..." << endl;
             for (size_t vidx = 0; vidx < num_villages; vidx++) {
-                cout << "*** Creating thread " << vidx + 1 << endl;
+                // cout << "*** Creating thread " << vidx + 1 << endl;
                 std::thread t(
                     [&](size_t idx) {
                         auto parents = this->select_parents(TOURNAMENT, idx);
@@ -186,45 +181,27 @@ void Genetic::run(size_t num_generations, EvolutionStrategy strategy) {
             for (auto &thread : threads) {
                 thread.join();
             }
-            cout << "*** All threads joined..." << endl;
+            // cout << "*** All threads joined..." << endl;
 #else
             for (size_t vidx = 0; vidx < num_villages; vidx++) {
                 auto parents = this->select_parents(TOURNAMENT, vidx);
                 for (auto &p : parents) {
-                    cout << "Village " << vidx << " parents: " << p.first.get_rule_clean() << " and " << p.second.get_rule_clean() << endl;
+                    cout << "Village " << vidx << " parents: " << p.first.get_rule_clean()
+                        << " and " << p.second.get_rule_clean() << endl;
                 }
                 all_parents.push_back(parents);
             }
 #endif
             /*
-             * Mate individuals "randomly" from two subgroups deemed
-             * most effective. Randomly to prevent the same pairs
-             * from mating multiple times when the same groups are
-             * the most effective in multiple runs. IDEA: rotate the
-             * second group by an offset of idx to prevent having to
-             * shuffle/choose randomly.
+             * STEP 3: MATE INDIVIDUALS (crossover)
              */
-            // prune worst-performing villages
-            // prune if max # of villages is exceeded, to keep same number of villages
-            if (subgroup_evals.size() > VILLAGE_COUNT) {
-                cout << "Pruning worst-performing villages..." << endl;
-                size_t remove_count = subgroup_evals.size() - VILLAGE_COUNT;
-                for (size_t j = 0; j < remove_count; j++) {
-                    cout << "Dropped village: " << &subgroup_evals.back().first << " with score "
-                         << subgroup_evals.back().second << endl;
-                    subgroup_evals.pop_back();
-                }
-            }
-
-            /*
-             * Crossover: Merge/breed some small number of individuals
-             */
-            for(size_t i = 0; i < num_villages; i++) {
-                auto &village = subgroup_evals[i].first;
+            for (size_t i = 0; i < num_villages; i++) {
+                //auto &village = subgroup_evals[i].first;
                 auto &parents = all_parents[i];
                 cout << "Crossover for village " << i << "..." << endl;
-                for(auto &p : parents) {
-                    cout << "Village " << i << " parents: " << p.first.get_rule_clean() << " and " << p.second.get_rule_clean() << endl;
+                for (auto &p : parents) {
+                    cout << "Village " << i << " parents: " << p.first.get_rule_clean()
+                        << " and " << p.second.get_rule_clean() << endl;
                     vector<Rule> children = crossover(p);
                     for (Rule child: children) {
                         if (child.get_tokens().size() > 10) {
@@ -232,16 +209,21 @@ void Genetic::run(size_t num_generations, EvolutionStrategy strategy) {
                             continue;
                         }
                         cout << "child: " << child.get_rule_clean() << endl;
-                        // select mutation type
-                        size_t type_idx = random_integer(0, MUTATION_TYPE_SENTINEL - 1);
-                        auto type = (MutationType) type_idx;
-                        child = mutate(child, type);
-                        cout << "mutated child: " << child.get_rule_clean() << endl;
+                        // maybe mutate
+                        bool do_mutate = random_integer(1, 100) <= (size_t) (100 * MUTATION_CHANCE);
+                        if (do_mutate) {
+                            // select mutation type
+                            size_t type_idx = random_integer(0, MUTATION_TYPE_SENTINEL - 1);
+                            auto type = (MutationType) type_idx;
+                            child = mutate(child, type);
+                            cout << "mutated child: " << child.get_rule_clean() << endl;
+                        }
                         string child_simplified_str = simplify_rule(child.get_rule_clean());
                         cout << "Child: " << child.get_rule_clean() << " simplified to: " << child_simplified_str << endl;
                         if (!child_simplified_str.empty()) {
                             Rule child_simplified = Rule(child_simplified_str);
-                            add_to_population(child_simplified, parents[0].first, parents[0].second, subgroup_evals[i].second);
+                            // NOTE: add_to_population is outdated, TODO: fix
+                            // add_to_population(child_simplified, parents[0].first, parents[0].second, subgroup_evals[i].second);
                         }
                     }
                 }
