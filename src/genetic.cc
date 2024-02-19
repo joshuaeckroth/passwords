@@ -236,6 +236,7 @@ void Genetic::run(size_t num_generations, EvolutionStrategy strategy) {
                         }
                         if (child_clean == p1_clean || child_clean == p2_clean) {
                             //cout << "Skipping child identical to one of parents: " << child_clean << endl;
+                            continue;
                         }
                         //cout << "child: " << child_clean << endl;
                         // maybe mutate
