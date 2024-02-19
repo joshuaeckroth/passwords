@@ -6,6 +6,7 @@
 #include <utility>
 #include <thread>
 #include <chrono>
+#include <glog/logging.h>
 #include "genetic.h"
 #include "tree_builder.h"
 #include "rule.h"
@@ -117,15 +118,15 @@ float Genetic::evaluate_population_fitness(vector<Rule> pop) {
         }
     }
     int num_cracked = unique_hits.size();
-    cout << "--- num cracked: " << num_cracked << endl;
+    DLOG(INFO) << "--- num cracked: " << num_cracked;
     // parts of the rpp calculation:
-    cout << "--- pop size: " << pop.size() << endl;
-    cout << "--- target count: " << target_count << endl;
-    cout << "--- num cracked: " << num_cracked << endl;
-    cout << "--- pct cracked: " << (100.0f * ((float) num_cracked / (float) target_count)) << endl;
-    cout << "--- pct cracked no rule: " << pct_cracked_no_rule << endl;
-    cout << "--- rpp divider: " << (100.0f * ((float) num_cracked / (float) target_count)) - pct_cracked_no_rule << endl;
-    cout << "--- rpp: " << (float) pop.size() / ((100.0f * ((float) num_cracked / (float) target_count)) - pct_cracked_no_rule) << endl;
+    DLOG(INFO) << "--- pop size: " << pop.size();
+    DLOG(INFO) << "--- target count: " << target_count;
+    DLOG(INFO) << "--- num cracked: " << num_cracked;
+    DLOG(INFO) << "--- pct cracked: " << (100.0f * ((float) num_cracked / (float) target_count));
+    DLOG(INFO) << "--- pct cracked no rule: " << pct_cracked_no_rule;
+    DLOG(INFO) << "--- rpp divider: " << (100.0f * ((float) num_cracked / (float) target_count)) - pct_cracked_no_rule;
+    DLOG(INFO) << "--- rpp: " << (float) pop.size() / ((100.0f * ((float) num_cracked / (float) target_count)) - pct_cracked_no_rule);
     float rpp = (float) pop.size() / ((100.0f * ((float) num_cracked / (float) target_count)) - pct_cracked_no_rule);
     return rpp;
 }
@@ -141,15 +142,15 @@ void Genetic::run(size_t num_generations, EvolutionStrategy strategy) {
         }
         for (size_t idx = 0; idx < num_generations; idx++) {
             size_t num_villages = this->villages.size();
-            cout << "*** Generation: " << idx + 1 << ", village count: " << num_villages << endl;
+            LOG(INFO) << "*** Generation: " << idx + 1 << ", village count: " << num_villages;
             // evaluate fitness of each village (RPP)
             typedef std::pair<Village, float> vp;
             std::vector<vp> subgroup_evals;
             size_t j = 1;
             for (auto &village : this->villages) {
-                cout << "*** Evaluating population fitness for village: " << j << endl;
+                LOG(INFO) << "*** Evaluating population fitness for village: " << j;
                 float fitness = this->evaluate_population_fitness(village);
-                cout << "Village fitness: " << fitness << endl;
+                LOG(INFO) << "Village fitness: " << fitness;
                 subgroup_evals.push_back(make_pair(std::move(village), fitness));
                 j += 1;
             }
@@ -163,12 +164,12 @@ void Genetic::run(size_t num_generations, EvolutionStrategy strategy) {
             subgroup_evals.clear();
             // prune worst-performing villages, stay below VILLAGE_COUNT
             if (num_villages > VILLAGE_COUNT_MAX) {
-                cout << "*** Pruning worst-performing villages..." << endl;
+                LOG(INFO) << "*** Pruning worst-performing villages...";
                 size_t remove_count = num_villages - VILLAGE_COUNT_MAX;
                 for (size_t j = 0; j < remove_count; j++) {
                     this->villages.pop_back();
                 }
-                cout << "*** Dropped " << remove_count << " villages..." << endl;
+                LOG(INFO) << "*** Dropped " << remove_count << " villages...";
             }
             num_villages = this->villages.size();
             /*
@@ -210,8 +211,8 @@ void Genetic::run(size_t num_generations, EvolutionStrategy strategy) {
             for (size_t vidx = 0; vidx < num_villages; vidx++) {
                 auto parents = this->select_parents(TOURNAMENT, vidx);
                 for (auto &p : parents) {
-                    cout << "Village " << vidx << " parents: " << p.first.get_rule_clean()
-                        << " and " << p.second.get_rule_clean() << endl;
+                    DLOG(INFO) << "Village " << vidx << " parents: " << p.first.get_rule_clean()
+                        << " and " << p.second.get_rule_clean();
                 }
                 all_parents.push_back(parents);
             }
@@ -221,7 +222,7 @@ void Genetic::run(size_t num_generations, EvolutionStrategy strategy) {
              */
             for (size_t i = 0; i < num_villages; i++) {
                 auto &parents = all_parents[i];
-                cout << "*** Crossover for village " << i << "..." << endl;
+                LOG(INFO) << "*** Crossover for village " << i << "...";
                 for (auto &p : parents) {
                     auto p1_clean = p.first.get_rule_clean();
                     auto p2_clean = p.second.get_rule_clean();
@@ -309,7 +310,7 @@ vector<pair<Rule, Rule>> Genetic::select_parents(SelectionStrategy select_strat,
         size_t tournament_count = (size_t) (((float) pop_size) * POPULATION_GROWTH_RATE);
         size_t tournament_size = (size_t) (pop_size * TOURNAMENT_PCT);
         Village mating_pool;
-        cout << "*** Running tournaments..." << endl;
+        LOG(INFO) << "*** Running tournaments...";
         for (size_t idx = 0; idx < tournament_count * 2; idx++) {
             Village shuffled(pop);
             unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
@@ -324,7 +325,7 @@ vector<pair<Rule, Rule>> Genetic::select_parents(SelectionStrategy select_strat,
             }
             mating_pool.push_back(top);
         }
-        cout << "*** Ran tournaments..." << endl;
+        LOG(INFO) << "*** Ran tournaments...";
         vector<pair<Rule, Rule>> mating_pairs;
         for (size_t idx = 0; idx < tournament_count; idx++) {
             mating_pairs.push_back(make_pair(mating_pool[idx], mating_pool[tournament_count + idx]));
@@ -355,7 +356,7 @@ vector<Rule> Genetic::crossover(const pair<Rule, Rule>& parents) {
     }
     size_t crossover_point = 1 + random_integer(0, min(rule_a_tokens.size(), rule_b_tokens.size()) - 2);
     //int crossover_point = 1 + rand() % (min(rule_a_tokens.size(), rule_b_tokens.size()) - 1);
-    cout << "crossover point: " << crossover_point << endl;
+    DLOG(INFO) << "crossover point: " << crossover_point;
     /* consider: ABC and XYZ as the parents, crossover point 1 */
     vector<string> child_left_right_tokens, /* AYZ */
         child_right_left_tokens, /* XBC */
@@ -460,7 +461,7 @@ float Genetic::evaluate_fitness(const Rule &rule, const Rule &parent_a, const Ru
     }
     if (no_op_count == N) {
         score = 0.0;
-        cout << "No-op rule detected: " << rule.get_rule_clean() << endl;
+        DLOG(INFO) << "No-op rule detected: " << rule.get_rule_clean();
     }
     return score;
 }

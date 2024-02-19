@@ -14,7 +14,7 @@ endif
 
 CFLAGS_NATIVE_PW := $(CFLAGS)
 CFLAGS_NATIVE_PW += -DWITH_HWMON
-CFLAGS_NATIVE_PW += -I/opt/homebrew/Cellar/boost/1.82.0_1/include -L/opt/homebrew/Cellar/boost/1.82.0_1/lib -lboost_regex
+CFLAGS_NATIVE_PW += -I/opt/homebrew/Cellar/boost/1.82.0_1/include -L/opt/homebrew/Cellar/boost/1.82.0_1/lib -lboost_regex -lglog
 
 ifeq ($(UNAME),Darwin)
 ifeq ($(shell test $(DARWIN_VERSION) -le 15; echo $$?), 0)

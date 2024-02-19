@@ -1,5 +1,6 @@
 #include <vector>
 #include <string>
+#include <glog/logging.h>
 #include "genetic.h"
 #include "rule_loader.h"
 #include "password_loader.h"
@@ -17,6 +18,8 @@ extern "C" {
 using namespace std;
 
 int main(int argc, const char **argv) {
+    google::InitGoogleLogging(argv[0]);
+    FLAGS_logtostderr = 1;
     if (argc != 8) {
         cerr << "Usage: "
             << argv[0]
@@ -43,21 +46,21 @@ int main(int argc, const char **argv) {
     partial_guess_data = get_pguess_metrics(pw_distribution_path);
     (void) compute_strength_unseen(partial_guess_data);
     password_strengths = make_strength_map(partial_guess_data);
-    cout << "*** Loading initial population from " << initial_population_path << endl;
+    LOG(INFO) << "*** Loading initial population from " << initial_population_path << endl;
     vector<string> rules_vec = RuleLoader::load_rules<string>(initial_population_path);
     vector<Rule> rules;
     for (const auto &r : rules_vec) {
         rules.emplace_back(r);
     }
-    cout << "*** Loading primitives from " << primitives_path << endl;
+    LOG(INFO) << "*** Loading primitives from " << primitives_path;
     vector<string> primitives = RuleLoader::load_rules<string>(primitives_path);
-    cout << "*** Loading password targets from " << password_targets_path << endl;
+    LOG(INFO) << "*** Loading password targets from " << password_targets_path;
     vector<string> target_passwords = PasswordLoader::load_passwords(password_targets_path);
     rax *pw_tree_targets = build_target_password_tree(target_passwords);
-    cout << "*** Loading initial passwords from " << initial_passwords_path << endl;
+    LOG(INFO) << "*** Loading initial passwords from " << initial_passwords_path;
     vector<string> initial_passwords = PasswordLoader::load_passwords(initial_passwords_path);
     rax *pw_tree_initial = build_initial_password_tree(initial_passwords);
-    cout << "*** Starting genetic algorithm with " << cycles << " cycles" << endl;
+    LOG(INFO) << "*** Starting genetic algorithm with " << cycles << " cycles";
     Genetic genetic(rules, primitives, target_passwords, pw_tree_targets, initial_passwords, pw_tree_initial, cycles, password_strengths);
     genetic.run(cycles, ("collective" == string(strategy)) ? COLLECTIVE : INDIVIDUAL);
     genetic.delete_trees();

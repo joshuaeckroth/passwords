@@ -12,6 +12,7 @@
 #include <numeric>
 #include <limits>
 #include <algorithm>
+#include <glog/logging.h>
 #include "partial_guessing.h"
 
 using std::cout, std::endl, std::string, std::vector;
@@ -58,7 +59,7 @@ PGV read_pguess_cache(string path) {
 }
 
 void cache_pguess_metrics(const PGV &probabilities, string path) {
-    cout << "Caching partial guess metric results..." << endl;
+    LOG(INFO) << "Caching partial guess metric results...";
     std::ofstream file(path);
     auto str_precise = [](double d) {
         const size_t precision = 14;
@@ -78,9 +79,9 @@ void cache_pguess_metrics(const PGV &probabilities, string path) {
             file << line << endl;
         }
         file.close();
-        cout << "Finished caching partial guess metric results..." << endl;
+        LOG(INFO) << "Finished caching partial guess metric results...";
     } else {
-        std::cerr << "Unable to open file at path "
+        LOG(ERROR) << "Unable to open file at path "
             << path
             << " to cache partial guess results..."
             << endl;
@@ -136,7 +137,7 @@ double get_strength_unseen() {
 }
 
 double compute_strength_unseen(const PGV &probabilities) {
-    cout << "Computing strength of unseen passwords" << endl;
+    LOG(INFO) << "Computing strength of unseen passwords";
     if (unseen_computed) {
         return strength_unseen_cached;
     }
@@ -169,10 +170,10 @@ void generate_partial_guessing_strengths(PGV &probabilities) {
         const double strength = alpha_guesswork(probabilities, alpha, awf_start_idx);
         probabilities[idx].strength = strength;
         if (idx % 10000 == 0) {
-            cout << "Generated strength for " << idx << " passwords" << endl;
+            LOG(INFO) << "Generated strength for " << idx << " passwords";
         }
     }
-    cout << "lg N is: " << std::log2(N) << endl;
+    LOG(INFO) << "lg N is: " << std::log2(N);
 }
 
 // assumes input rows are sorted by frequency
@@ -188,11 +189,11 @@ PGV get_pguess_metrics(string path_to_distribution,
         std::ifstream f(cache_path);
         if (f.good()) {
             f.close();
-            cout << "Using password guess metrics cache..." << endl;
+            LOG(INFO) << "Using password guess metrics cache...";
             return read_pguess_cache(cache_path);
         }
     }
-    cout << "Computing password guess metrics..." << endl;
+    LOG(INFO) << "Computing password guess metrics...";
     PGV v;
     std::ifstream in_f(path_to_distribution);
     string line;
@@ -261,7 +262,7 @@ PGV get_pguess_metrics(string path_to_distribution,
             ele.cumulative_probability = c_prob;
         }
     }
-    cout << v.size() << " distinct events in password distribution" << endl;
+    LOG(INFO) << v.size() << " distinct events in password distribution";
     // event indices, probabilities, and cumulative probabilities
     // have now been computed... compute G ̃α
     generate_partial_guessing_strengths(v);
