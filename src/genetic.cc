@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <set>
 #include <iostream>
+#include <fstream>
 #include <functional>
 #include <random>
 #include <utility>
@@ -132,6 +133,12 @@ float Genetic::evaluate_population_fitness(vector<Rule> pop) {
 }
 
 void Genetic::run(size_t num_generations, EvolutionStrategy strategy) {
+    ofstream stats_out("genetic_stats.tsv", ios::out | ios::trunc);
+    if (!stats_out.is_open()) {
+        LOG(ERROR) << "Failed to open genetic_stats.tsv for writing";
+        return;
+    }
+    stats_out << "generation\tvillage\tfitness" << endl;
     if (strategy == COLLECTIVE) {
         /*
          * STEP 1: INITIALIZE POPULATION
@@ -151,6 +158,8 @@ void Genetic::run(size_t num_generations, EvolutionStrategy strategy) {
                 LOG(INFO) << "*** Evaluating population fitness for village: " << j;
                 float fitness = this->evaluate_population_fitness(village);
                 LOG(INFO) << "Village fitness: " << fitness;
+                stats_out << idx + 1 << "\t" << j << "\t" << fitness << endl;
+                stats_out.flush();
                 subgroup_evals.push_back(make_pair(std::move(village), fitness));
                 j += 1;
             }
