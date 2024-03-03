@@ -12,9 +12,9 @@ extern "C" {
 }
 
 /*to run code:
- * make genetic
-./bin/genetic rules/best64.rule rules/primitives.rule data/rockyou-10.txt data/passwords.txt 10 collective xyz
-*/
+make genetic USE_PARALLEL=1
+./bin/genetic rules/best64.rule rules/primitives.rule data/rockyou-1k.txt data/rockyou-100.txt 100 collective data/pguess_metrics_cache.tsv
+ */
 using namespace std;
 
 int main(int argc, const char **argv) {
@@ -44,7 +44,8 @@ int main(int argc, const char **argv) {
     StrengthMap password_strengths;
     PGV partial_guess_data;
     partial_guess_data = get_pguess_metrics(pw_distribution_path);
-    (void) compute_strength_unseen(partial_guess_data);
+    //cout << partial_guess_data[0].password << endl; //seg fault
+    //(void) compute_strength_unseen(partial_guess_data); //seg fault
     password_strengths = make_strength_map(partial_guess_data);
     LOG(INFO) << "*** Loading initial population from " << initial_population_path << endl;
     vector<string> rules_vec = RuleLoader::load_rules<string>(initial_population_path);

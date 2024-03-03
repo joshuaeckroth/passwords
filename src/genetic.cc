@@ -7,6 +7,7 @@
 #include <utility>
 #include <thread>
 #include <chrono>
+#include <cmath>
 #include <glog/logging.h>
 #include "genetic.h"
 #include "tree_builder.h"
@@ -20,6 +21,11 @@ extern "C" {
 }
 
 using namespace std;
+
+struct migration_split_result {
+    vector<vector<pair<Rule, Rule>>> multi_village;
+    vector<vector<pair<Rule, Rule>>> one_village;
+};
 
 Genetic::Genetic(
         vector<Rule> &rules,
@@ -132,6 +138,47 @@ float Genetic::evaluate_population_fitness(vector<Rule> pop) {
     return rpp;
 }
 
+migration_split_result migration_split(vector<vector<pair<Rule, Rule>>> all_parents, int multi_village = MIGRATION_CHANCE) {
+    migration_split_result result;
+    return result;
+}
+
+void Genetic::mate_individuals (vector<pair<Rule, Rule>> parents) {
+    for (auto &p: parents) {
+        auto p1_clean = p.first.get_rule_clean();
+        auto p2_clean = p.second.get_rule_clean();
+
+        vector<Rule> children = crossover(p);
+        for (Rule child: children) {
+            auto child_clean = child.get_rule_clean();
+            if (child.get_tokens().size() > 10) {
+                //cout << "Skipping child with too many tokens: " << child_clean << endl;
+                continue;
+            }
+            if (child_clean == p1_clean || child_clean == p2_clean) {
+                //cout << "Skipping child identical to one of parents: " << child_clean << endl;
+                continue;
+            }
+            //cout << "child: " << child_clean << endl;
+            // maybe mutate
+            bool do_mutate = random_integer(1, 100) <= (size_t) (100 * MUTATION_CHANCE);
+            if (do_mutate) {
+                // select mutation type
+                size_t type_idx = random_integer(0, MUTATION_TYPE_SENTINEL - 1);
+                auto type = (MutationType) type_idx;
+                child = mutate(child, type);
+                //cout << "mutated child: " << child_clean << endl;
+            }
+            string child_simplified_str = simplify_rule(child_clean);
+            ///cout << "Child: " << child_clean << " simplified to: " << child_simplified_str << endl;
+            if (!child_simplified_str.empty()) {
+                Rule child_simplified = Rule(child_simplified_str);
+                this->add_to_population(std::move(child_simplified));
+            }
+        }
+    }
+}
+
 void Genetic::run(size_t num_generations, EvolutionStrategy strategy) {
     ofstream stats_out("genetic_stats.tsv", ios::out | ios::trunc);
     if (!stats_out.is_open()) {
@@ -229,6 +276,70 @@ void Genetic::run(size_t num_generations, EvolutionStrategy strategy) {
             /*
              * STEP 3: MATE INDIVIDUALS (crossover)
              */
+
+            //TODO: migration--instead of parents being from same village, make them be from different villages
+            /*
+             * * add likelihood of this happening as a parameter
+             * * split all_parents into two and loop through each separately
+             * * Get first rule of each of the two villages
+             * * Create a temporary village, where each rule pair made from the two villages picked (second one picked randomly)
+             * * add mate_individuals as a function
+                 * TODO:Currently picking a random village, pick intentional one instead?
+                 * *Best performing village? Closest performing village? Can the same village be picked to be the second for multiple villages?
+                 * TODO: Migrated village creation
+                 * *do the rules migrating need to be taken out of village they came from?
+                 * *for picking the parent rules, currently getting the first from both villages--*should we randomize which is taken, the first or second, from both villages?
+                 * save the migrated parent village as a new village?
+                 * should I do the select_parents method to create the migrated village? adapt it to work on two villages?
+                 * are all villages same size?
+                 */
+            //make temporary village where first rule in every pair is from one village, second rule in every pair is from second village
+
+            //split all_parents into group for doing migration, and group doing crossover within the village
+            migration_split_result result = migration_split(all_parents);
+
+            //parents are from different villages, use two villages in each iteration
+            for (size_t i = 0; i < result.multi_village.size(); i++) {
+                    vector<pair<Rule, Rule>> parents; // new parent combinations, where parents from different villages
+                    cout << "Creating migrated parent village ..." << endl;
+
+                    //pick the two villages indices (second randomly), get all the parents in each
+                    auto &first_parents = result.multi_village[i];
+                    size_t second_vill_ind = random_integer(0, num_villages);//random num between 0 and num_villages-1 that is not i
+                    if (second_vill_ind==i) {
+                        if (i < result.multi_village.size()-1) {
+                            second_vill_ind += 1;
+                        } else {
+                            second_vill_ind -= 1;
+                        }
+                    }
+                    auto &second_parents = result.multi_village[second_vill_ind];
+
+                    //go through both villages, create new rule pairs by index, add to migrated village
+                    for (size_t k = 0; k < first_parents.size(); k++) {
+                        auto p1_rule = first_parents[k].first;
+                        auto p1_clean = p1_rule.get_rule_clean();
+                        auto p2_rule = second_parents[k].first;
+                        auto p2_clean = p2_rule.get_rule_clean();
+                        pair<Rule, Rule> migrated_parents = make_pair(p1_rule, p2_rule);
+                        cout << "Parent 1: " << p1_clean << " from Village " << i << " and "
+                             << "Parent 2: " << p2_clean << " from Village " << second_vill_ind << endl;
+
+                        parents.push_back(migrated_parents);
+                    }
+                    // after getting new combo-village parents
+                    LOG(INFO) << "*** Crossover for villages " << i << " and " << second_vill_ind << "...";
+                    mate_individuals(parents);
+                }
+            //parents are from same village
+            for (size_t i = 0; i < result.one_village.size(); i++) {
+                    auto &parents = result.one_village[i];
+                    LOG(INFO) << "*** Crossover for village " << i << "...";
+                    mate_individuals(parents);
+                }
+            }
+
+            /*
             for (size_t i = 0; i < num_villages; i++) {
                 auto &parents = all_parents[i];
                 LOG(INFO) << "*** Crossover for village " << i << "...";
@@ -236,7 +347,7 @@ void Genetic::run(size_t num_generations, EvolutionStrategy strategy) {
                     auto p1_clean = p.first.get_rule_clean();
                     auto p2_clean = p.second.get_rule_clean();
                     //cout << "Village " << i << " parents: " << p1_clean
-                    //    << " and " << p2_clean << endl;
+                    //  << " and " << p2_clean << endl;
                     vector<Rule> children = crossover(p);
                     for (Rule child: children) {
                         auto child_clean = child.get_rule_clean();
@@ -268,48 +379,50 @@ void Genetic::run(size_t num_generations, EvolutionStrategy strategy) {
                 }
             }
         }
-    } else {
-//        size_t top_score = 0;
-//        for (size_t i = 0; i < num_generations; i++) {
-//            cout << "generation " << i << endl;
-//            pair<Rule, Rule> parents = select_parents();
-//            cout << "parents: " << parents.first.get_rule_clean() << " and " << parents.second.get_rule_clean() << endl;
-//            vector<Rule> children = crossover(parents);
-//            for (Rule child: children) {
-//                if (child.get_tokens().size() > 10) {
-//                    cout << "Skipping child with too many tokens: " << child.get_rule_clean() << endl;
-//                    continue;
-//                }
-//                cout << "child: " << child.get_rule_clean() << endl;
-//                // select mutation type
-//                size_t type_idx = random_integer(0, MUTATION_TYPE_SENTINEL - 1);
-//                auto type = (MutationType) type_idx;
-//                child = mutate(child, type);
-//                cout << "mutated child: " << child.get_rule_clean() << endl;
-//                string child_simplified_str = simplify_rule(child.get_rule_clean());
-//                cout << "Child: " << child.get_rule_clean() << " simplified to: " << child_simplified_str << endl;
-//                if (!child_simplified_str.empty()) {
-//                    Rule child_simplified = Rule(child_simplified_str);
-//                    add_to_population(child_simplified, parents.first, parents.second, top_score);
-//                }
-//            }
-//            if (population.size() > max_pop) {
-//                cout << "Removing lowest-fitness rules" << endl;
-//                size_t remove_count = population.size() - max_pop;
-//                for (size_t j = 0; j < remove_count; j++) {
-//                    cout << "Dropped rule: " << population.back().get_rule_clean() << " with score "
-//                        << population.back().get_score() << endl;
-//                    population.pop_back();
-//                }
-//            }
-//            top_score = population.front().get_score();
-//            cout << "Best 10 rules:" << endl;
-//            for (size_t j = 0; j < 10; j++) {
-//                cout << population[j].get_rule_clean() << " with score " << population[j].get_score() << endl;
-//            }
-//            cout << "Population size: " << population.size() << endl;
-//        }
-    }
+    */
+        }
+        //else {
+    //        size_t top_score = 0;
+    //        for (size_t i = 0; i < num_generations; i++) {
+    //            cout << "generation " << i << endl;
+    //            pair<Rule, Rule> parents = select_parents();
+    //            cout << "parents: " << parents.first.get_rule_clean() << " and " << parents.second.get_rule_clean() << endl;
+    //            vector<Rule> children = crossover(parents);
+    //            for (Rule child: children) {
+    //                if (child.get_tokens().size() > 10) {
+    //                    cout << "Skipping child with too many tokens: " << child.get_rule_clean() << endl;
+    //                    continue;
+    //                }
+    //                cout << "child: " << child.get_rule_clean() << endl;
+    //                // select mutation type
+    //                size_t type_idx = random_integer(0, MUTATION_TYPE_SENTINEL - 1);
+    //                auto type = (MutationType) type_idx;
+    //                child = mutate(child, type);
+    //                cout << "mutated child: " << child.get_rule_clean() << endl;
+    //                string child_simplified_str = simplify_rule(child.get_rule_clean());
+    //                cout << "Child: " << child.get_rule_clean() << " simplified to: " << child_simplified_str << endl;
+    //                if (!child_simplified_str.empty()) {
+    //                    Rule child_simplified = Rule(child_simplified_str);
+    //                    add_to_population(child_simplified, parents.first, parents.second, top_score);
+    //                }
+    //            }
+    //            if (population.size() > max_pop) {
+    //                cout << "Removing lowest-fitness rules" << endl;
+    //                size_t remove_count = population.size() - max_pop;
+    //                for (size_t j = 0; j < remove_count; j++) {
+    //                    cout << "Dropped rule: " << population.back().get_rule_clean() << " with score "
+    //                        << population.back().get_score() << endl;
+    //                    population.pop_back();
+    //                }
+    //            }
+    //            top_score = population.front().get_score();
+    //            cout << "Best 10 rules:" << endl;
+    //            for (size_t j = 0; j < 10; j++) {
+    //                cout << population[j].get_rule_clean() << " with score " << population[j].get_score() << endl;
+    //            }
+    //            cout << "Population size: " << population.size() << endl;
+    //        }
+    //    }
 }
 
 vector<pair<Rule, Rule>> Genetic::select_parents(SelectionStrategy select_strat, size_t village_idx) const {

@@ -22,6 +22,7 @@ extern "C" {
 // of another village/population instead of its own
 #define GENE_MIGRATION_CHANCE 0.01f
 #define MUTATION_CHANCE 0.02f // NOTE: no smaller than 0.01
+#define MIGRATION_CHANCE 0.20f
 
 enum MutationType {
     INSERT,
@@ -58,6 +59,7 @@ class Genetic {
     private:
         void add_to_population(Rule&, const Rule&, const Rule&, const int&);
         void add_to_population(Rule&&);
+        void mate_individuals (std::vector<std::pair<Rule, Rule>>);
         std::vector<Rule> crossover(const std::pair<Rule, Rule>&);
         float evaluate_fitness(const Rule&, const Rule&, const Rule&, const int&);
         float evaluate_population_fitness(std::vector<Rule>);

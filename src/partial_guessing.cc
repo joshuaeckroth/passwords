@@ -190,6 +190,7 @@ PGV get_pguess_metrics(string path_to_distribution,
         if (f.good()) {
             f.close();
             LOG(INFO) << "Using password guess metrics cache...";
+            // cout << cache_path << endl; // data/pguess_metrics_cahce
             return read_pguess_cache(cache_path);
         }
     }
