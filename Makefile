@@ -14,7 +14,7 @@ endif
 
 CFLAGS_NATIVE_PW := $(CFLAGS)
 CFLAGS_NATIVE_PW += -DWITH_HWMON
-CFLAGS_NATIVE_PW += -I/opt/homebrew/Cellar/boost/1.82.0_1/include -L/opt/homebrew/Cellar/boost/1.82.0_1/lib -lboost_regex -lglog
+CFLAGS_NATIVE_PW += -I/opt/homebrew/Cellar/boost/1.82.0_1/include -L/opt/homebrew/Cellar/boost/1.82.0_1/lib -lboost_regex -lglog -DGLOG_USE_GLOG_EXPORT
 
 ifeq ($(UNAME),Darwin)
 ifeq ($(shell test $(DARWIN_VERSION) -le 15; echo $$?), 0)
@@ -96,6 +96,9 @@ src/rax.o: $(RADIX_ROOT)/rax.h
 
 src/password_data.o: src/password_data.cc src/password_data.h
 	$(CXX) $(CXXFLAGS) -c src/password_data.cc -o src/password_data.o
+
+src/partial_guessing.o: src/partial_guessing.cc src/partial_guessing.h src/rule.h src/rule_data.h
+	$(CXX) $(CXXFLAGS) $(CFLAGS_NATIVE_PW) $(LFLAGS_NATIVE) -c src/partial_guessing.cc -o src/partial_guessing.o
 
 src/rule_data.o: src/rule_data.cc src/rule_data.h
 	$(CXX) $(CXXFLAGS) -c src/rule_data.cc -o src/rule_data.o
