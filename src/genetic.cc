@@ -15,6 +15,7 @@
 #include "password_data.h"
 #include "util.h"
 #include "partial_guessing.h"
+#include "fitness.h"
 
 extern "C" {
 #include <rax.h>
@@ -86,7 +87,7 @@ void Genetic::add_to_population(Rule &rule, const Rule& parent_a, const Rule& pa
 
 
 //make village fitness the RPP
-float Genetic::evaluate_population_fitness(vector<Rule> pop) {
+const VillageFitness Genetic::evaluate_population_fitness(vector<Rule> pop) {
     // rpp is the number of rules/ 100*(cracked/hashed)
     // cracked is number of passwords cracked by an entire village (so don't include passwords already cracked by the village)
     //what is hashed value here? the number of initial passwords
@@ -125,17 +126,17 @@ float Genetic::evaluate_population_fitness(vector<Rule> pop) {
         }
     }
     int num_cracked = unique_hits.size();
+    float rpp = (float) pop.size() / ((100.0f * ((float) num_cracked / (float) target_count)) - pct_cracked_no_rule);
+    double pct_cracked = (100.0f * ((float) num_cracked / (float) target_count));
     DLOG(INFO) << "--- num cracked: " << num_cracked;
     // parts of the rpp calculation:
     DLOG(INFO) << "--- pop size: " << pop.size();
     DLOG(INFO) << "--- target count: " << target_count;
-    DLOG(INFO) << "--- num cracked: " << num_cracked;
-    DLOG(INFO) << "--- pct cracked: " << (100.0f * ((float) num_cracked / (float) target_count));
+    DLOG(INFO) << "--- pct cracked: " << pct_cracked;
     DLOG(INFO) << "--- pct cracked no rule: " << pct_cracked_no_rule;
     DLOG(INFO) << "--- rpp divider: " << (100.0f * ((float) num_cracked / (float) target_count)) - pct_cracked_no_rule;
     DLOG(INFO) << "--- rpp: " << (float) pop.size() / ((100.0f * ((float) num_cracked / (float) target_count)) - pct_cracked_no_rule);
-    float rpp = (float) pop.size() / ((100.0f * ((float) num_cracked / (float) target_count)) - pct_cracked_no_rule);
-    return rpp;
+    return VillageFitness(pct_cracked, rpp);
 }
 
 migration_split_result migration_split(vector<vector<pair<Rule, Rule>>> all_parents, int multi_village = MIGRATION_CHANCE) {
@@ -185,7 +186,7 @@ void Genetic::run(size_t num_generations, EvolutionStrategy strategy) {
         LOG(ERROR) << "Failed to open genetic_stats.tsv for writing";
         return;
     }
-    stats_out << "generation\tvillage\tfitness" << endl;
+    stats_out << "generation\tvillage\tfitness_cracked_pct\tfitness_rpp" << endl;
     if (strategy == COLLECTIVE) {
         /*
          * STEP 1: INITIALIZE POPULATION
@@ -198,14 +199,14 @@ void Genetic::run(size_t num_generations, EvolutionStrategy strategy) {
             size_t num_villages = this->villages.size();
             LOG(INFO) << "*** Generation: " << idx + 1 << ", village count: " << num_villages;
             // evaluate fitness of each village (RPP)
-            typedef std::pair<Village, float> vp;
+            typedef std::pair<Village, VillageFitness> vp;
             std::vector<vp> subgroup_evals;
             size_t j = 1;
             for (auto &village : this->villages) {
                 LOG(INFO) << "*** Evaluating population fitness for village: " << j;
-                float fitness = this->evaluate_population_fitness(village);
-                LOG(INFO) << "Village fitness: " << fitness;
-                stats_out << idx + 1 << "\t" << j << "\t" << fitness << endl;
+                VillageFitness fitness = this->evaluate_population_fitness(village);
+                LOG(INFO) << "Village fitness: " << fitness.to_string();
+                stats_out << idx + 1 << "\t" << j << "\t" << fitness.get_cracked_pct() << "\t" << fitness.get_rpp() << endl;
                 stats_out.flush();
                 subgroup_evals.push_back(make_pair(std::move(village), fitness));
                 j += 1;
