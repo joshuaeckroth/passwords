@@ -39,10 +39,10 @@ HC_ARCHIVE = external/hashcat/obj/combined.NATIVE.a
 GENGRAPH_SRCS = src/rule.cc src/util.cc src/rule_loader.cc src/password_loader.cc src/password_node.cc src/graph.cc src/password_node_hash.cc src/graph_builder.cc src/graph_db_writer.cc src/gengraph.cc
 GENGRAPH_OBJS = $(subst .cc,.o,$(GENGRAPH_SRCS))
 
-GENTREE_SRCS = src/gentree.cc src/util.cc src/rule_loader.cc src/password_loader.cc src/rule.cc src/password_data.cc src/rule_data.cc src/tree_builder.cc src/analyze_tree.cc src/partial_guessing.cc src/genetic.cc
+GENTREE_SRCS = src/gentree.cc src/util.cc src/rule_loader.cc src/password_loader.cc src/rule.cc src/password_data.cc src/rule_data.cc src/tree_builder.cc src/analyze_tree.cc src/partial_guessing.cc src/genetic.cc src/fitness.cc
 GENTREE_OBJS = $(subst .cc,.o,$(GENTREE_SRCS)) src/rax.o
 
-GENETIC_SRCS = src/run_genetic.cc src/genetic.cc src/util.cc src/rule_loader.cc src/password_loader.cc src/rule.cc src/password_data.cc src/rule_data.cc src/tree_builder.cc src/analyze_tree.cc src/partial_guessing.cc
+GENETIC_SRCS = src/run_genetic.cc src/genetic.cc src/util.cc src/rule_loader.cc src/password_loader.cc src/rule.cc src/password_data.cc src/rule_data.cc src/tree_builder.cc src/analyze_tree.cc src/partial_guessing.cc src/fitness.cc
 GENETIC_OBJS = $(subst .cc,.o,$(GENETIC_SRCS)) src/rax.o
 
 all: genetic
@@ -82,7 +82,7 @@ src/password_loader.o: src/password_loader.cc src/password_loader.h
 src/util.o: src/util.cc src/util.h $(RADIX_ROOT)/rax.h
 	$(CXX) $(CXXFLAGS) $(CFLAGS_NATIVE_PW) $(LFLAGS_NATIVE) $(RADIX_FLAGS) -c src/util.cc -o src/util.o
 
-src/genetic.o: src/genetic.cc src/genetic.h $(RADIX_ROOT)/rax.h src/rule.h src/partial_guessing.h
+src/genetic.o: src/genetic.cc src/genetic.h $(RADIX_ROOT)/rax.h src/rule.h src/partial_guessing.h src/fitness.h
 	$(CXX) $(CXXFLAGS) $(CFLAGS_NATIVE_PW) $(LFLAGS_NATIVE) $(RADIX_FLAGS) -c src/genetic.cc -o src/genetic.o
 
 src/gengraph.o: src/gengraph.cc src/rule.h src/rule_loader.h src/password_loader.h src/util.h src/password_node.h src/graph.h src/graph_builder.h src/graph_db_writer.h src/genetic.h

@@ -7,6 +7,7 @@
 #include <set>
 #include "rule.h"
 #include "partial_guessing.h"
+#include "fitness.h"
 
 extern "C" {
 #include <rax.h>
@@ -62,7 +63,7 @@ class Genetic {
         void mate_individuals (std::vector<std::pair<Rule, Rule>>);
         std::vector<Rule> crossover(const std::pair<Rule, Rule>&);
         float evaluate_fitness(const Rule&, const Rule&, const Rule&, const int&);
-        float evaluate_population_fitness(std::vector<Rule>);
+        const VillageFitness evaluate_population_fitness(std::vector<Rule>);
         std::vector<std::pair<Rule, Rule>> select_parents(
             SelectionStrategy s = TOURNAMENT,
             size_t village_idx = 0
