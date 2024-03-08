@@ -122,4 +122,4 @@ rule_regex_exp: src/rule_regex_exp.cc src/rule.h src/rule_loader.h src/rule.o sr
 	$(CXX) $(CXXFLAGS) $(CFLAGS_NATIVE_PW) $(LFLAGS_NATIVE) $(RADIX_FLAGS) src/rule_regex_exp.cc -o rule_regex_exp src/rule.o src/rule_loader.o $(HC_ARCHIVE) src/rax.o
 
 genetic: $(GENETIC_OBJS) $(HC_ARCHIVE)
-	$(CXX) $(CXXFLAGS) $(CFLAGS_NATIVE_PW) $(LFLAGS_NATIVE) $(RADIX_FLAGS) -o bin/genetic $(GENETIC_OBJS) $(HC_ARCHIVE)
+	$(CXX) $(CXXFLAGS) $(CFLAGS_NATIVE_PW) $(LFLAGS_NATIVE) $(RADIX_FLAGS) -o bin/genetic $(GENETIC_OBJS) $(HC_ARCHIVE) -lglog -lboost_regex
