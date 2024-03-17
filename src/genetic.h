@@ -64,9 +64,10 @@ class Genetic {
         std::vector<Rule> crossover(const std::pair<Rule, Rule>&);
         float evaluate_fitness(const Rule&, const Rule&, const Rule&, const int&);
         const VillageFitness evaluate_population_fitness(std::vector<Rule>);
-        std::vector<std::pair<Rule, Rule>> select_parents(
+         std::vector<std::pair<Rule, Rule>> select_parents(
             SelectionStrategy s = TOURNAMENT,
-            size_t village_idx = 0
+            size_t village_idx = 0,
+            size_t village_count = VILLAGE_COUNT_INITIAL
         ) const;
         std::set<std::pair<Rule, Rule>> breed_pairs;
         std::deque<Rule> population;

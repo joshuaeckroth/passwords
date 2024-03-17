@@ -23,11 +23,6 @@ extern "C" {
 
 using namespace std;
 
-struct migration_split_result {
-    vector<vector<pair<Rule, Rule>>> multi_village;
-    vector<vector<pair<Rule, Rule>>> one_village;
-};
-
 Genetic::Genetic(
         vector<Rule> &rules,
         vector<string> &primitives,
@@ -137,11 +132,6 @@ const VillageFitness Genetic::evaluate_population_fitness(vector<Rule> pop) {
     DLOG(INFO) << "--- rpp divider: " << (100.0f * ((float) num_cracked / (float) target_count)) - pct_cracked_no_rule;
     DLOG(INFO) << "--- rpp: " << (float) pop.size() / ((100.0f * ((float) num_cracked / (float) target_count)) - pct_cracked_no_rule);
     return VillageFitness(pct_cracked, rpp);
-}
-
-migration_split_result migration_split(vector<vector<pair<Rule, Rule>>> all_parents, int multi_village = MIGRATION_CHANCE) {
-    migration_split_result result;
-    return result;
 }
 
 void Genetic::mate_individuals (vector<pair<Rule, Rule>> parents) {
@@ -266,7 +256,7 @@ void Genetic::run(size_t num_generations, EvolutionStrategy strategy) {
             // cout << "*** All threads joined..." << endl;
 #else
             for (size_t vidx = 0; vidx < num_villages; vidx++) {
-                auto parents = this->select_parents(TOURNAMENT, vidx);
+                auto parents = this->select_parents(TOURNAMENT, vidx, num_villages);
                 for (auto &p : parents) {
                     DLOG(INFO) << "Village " << vidx << " parents: " << p.first.get_rule_clean()
                         << " and " << p.second.get_rule_clean();
@@ -278,16 +268,16 @@ void Genetic::run(size_t num_generations, EvolutionStrategy strategy) {
              * STEP 3: MATE INDIVIDUALS (crossover)
              */
 
-            //TODO: migration--instead of parents being from same village, make them be from different villages
+            //migration--instead of parents being from same village, make them be from different villages
             /*
              * * add likelihood of this happening as a parameter
              * * split all_parents into two and loop through each separately
              * * Get first rule of each of the two villages
              * * Create a temporary village, where each rule pair made from the two villages picked (second one picked randomly)
              * * add mate_individuals as a function
-                 * TODO:Currently picking a random village, pick intentional one instead?
+                 * Currently picking a random village, pick intentional one instead?
                  * *Best performing village? Closest performing village? Can the same village be picked to be the second for multiple villages?
-                 * TODO: Migrated village creation
+                 * TODO: Migrated village creation?
                  * *do the rules migrating need to be taken out of village they came from?
                  * *for picking the parent rules, currently getting the first from both villages--*should we randomize which is taken, the first or second, from both villages?
                  * save the migrated parent village as a new village?
@@ -297,24 +287,24 @@ void Genetic::run(size_t num_generations, EvolutionStrategy strategy) {
             //make temporary village where first rule in every pair is from one village, second rule in every pair is from second village
 
             //split all_parents into group for doing migration, and group doing crossover within the village
-            migration_split_result result = migration_split(all_parents);
-
-            //parents are from different villages, use two villages in each iteration
-            for (size_t i = 0; i < result.multi_village.size(); i++) {
+            //migration_split_result result = migration_split(all_parents);
+            for (size_t i = 0; i < num_villages; i++) {
+               //bool do_migration = random_integer(1, 100) <= (size_t) (100 * MIGRATION_CHANCE);
+                bool do_migration = 0;
+                if (do_migration) {
+                    auto &first_parents = all_parents[i];
                     vector<pair<Rule, Rule>> parents; // new parent combinations, where parents from different villages
                     cout << "Creating migrated parent village ..." << endl;
 
-                    //pick the two villages indices (second randomly), get all the parents in each
-                    auto &first_parents = result.multi_village[i];
-                    size_t second_vill_ind = random_integer(0, num_villages);//random num between 0 and num_villages-1 that is not i
-                    if (second_vill_ind==i) {
-                        if (i < result.multi_village.size()-1) {
+                    size_t second_vill_ind = random_integer(0, num_villages-1);//random num between 0 and num_villages-1 that is not i
+                    if (second_vill_ind == i) {
+                        if (i < all_parents.size() - 1) {
                             second_vill_ind += 1;
                         } else {
                             second_vill_ind -= 1;
                         }
                     }
-                    auto &second_parents = result.multi_village[second_vill_ind];
+                    auto &second_parents = all_parents[second_vill_ind];
 
                     //go through both villages, create new rule pairs by index, add to migrated village
                     for (size_t k = 0; k < first_parents.size(); k++) {
@@ -331,15 +321,12 @@ void Genetic::run(size_t num_generations, EvolutionStrategy strategy) {
                     // after getting new combo-village parents
                     LOG(INFO) << "*** Crossover for villages " << i << " and " << second_vill_ind << "...";
                     mate_individuals(parents);
-                }
-            //parents are from same village
-            for (size_t i = 0; i < result.one_village.size(); i++) {
-                    auto &parents = result.one_village[i];
+                } else {
+                    auto &parents = all_parents[i];
                     LOG(INFO) << "*** Crossover for village " << i << "...";
                     mate_individuals(parents);
                 }
             }
-
             /*
             for (size_t i = 0; i < num_villages; i++) {
                 auto &parents = all_parents[i];
@@ -381,7 +368,6 @@ void Genetic::run(size_t num_generations, EvolutionStrategy strategy) {
             }
         }
     */
-        }
         //else {
     //        size_t top_score = 0;
     //        for (size_t i = 0; i < num_generations; i++) {
@@ -424,9 +410,11 @@ void Genetic::run(size_t num_generations, EvolutionStrategy strategy) {
     //            cout << "Population size: " << population.size() << endl;
     //        }
     //    }
+    }
+}
 }
 
-vector<pair<Rule, Rule>> Genetic::select_parents(SelectionStrategy select_strat, size_t village_idx) const {
+vector<pair<Rule, Rule>> Genetic::select_parents(SelectionStrategy select_strat, size_t village_idx, size_t village_count) const {
     if (select_strat == SelectionStrategy::TOURNAMENT) {
         Village pop = this->villages[village_idx];
         size_t pop_size = pop.size();
@@ -451,7 +439,26 @@ vector<pair<Rule, Rule>> Genetic::select_parents(SelectionStrategy select_strat,
         LOG(INFO) << "*** Ran tournaments...";
         vector<pair<Rule, Rule>> mating_pairs;
         for (size_t idx = 0; idx < tournament_count; idx++) {
-            mating_pairs.push_back(make_pair(mating_pool[idx], mating_pool[tournament_count + idx]));
+            // for whatever mutation chance, make second parent from a random village and random index
+            bool do_migration = random_integer(1, 100) <= (size_t) (100 * MIGRATION_CHANCE);
+            cout << "village count: " << village_count << endl;
+            cout << "village index: " << village_idx << endl;
+            if (do_migration) {
+                size_t rand;
+                do {
+                rand = random_integer(0, village_count - 1);
+                } while (rand == village_idx);
+                //size_t rand = random_integer(0, village_count-1); // exclude village index value
+                cout << "migrating with random village: " << rand << endl; // this didn't always print
+                Village migration_pool = this->villages[rand]; //this isn't always assigning a village?
+                cout << "after migration pool created" << endl;
+                size_t pool_size = migration_pool.size();
+                mating_pairs.push_back(make_pair(mating_pool[idx], migration_pool[random_integer(0, pool_size-1)]));
+                cout << "migrated parents pushed" << endl;
+            } else {
+                cout << "no migration" << endl;
+                mating_pairs.push_back(make_pair(mating_pool[idx], mating_pool[tournament_count + idx]));
+            }
         }
         return mating_pairs;
     } else {
@@ -616,6 +623,7 @@ rax *build_initial_password_tree(const vector<string>& initial_passwords) {
     }
     return pw_tree_initial;
 }
+
 void Genetic::delete_trees() {
     raxIterator it;
     raxStart(&it, pw_tree_targets);
@@ -662,4 +670,3 @@ delete_tree(rax* tree) {
     raxFree(tree);
 }
 */
-
