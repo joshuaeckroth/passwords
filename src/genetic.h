@@ -52,7 +52,7 @@ typedef std::vector<Village> Villages;
 class Genetic {
     public:
         explicit Genetic(std::vector<Rule>&, std::vector<std::string>&, std::vector<std::string>&,
-                rax*, std::vector<std::string>&, rax*, size_t, StrengthMap);
+                rax*, std::vector<std::string>&, rax*, StrengthMap);
         ~Genetic();
         Rule mutate(const Rule&, MutationType);
         void run(size_t, EvolutionStrategy);

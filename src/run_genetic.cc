@@ -43,11 +43,11 @@ int main(int argc, const char **argv) {
     const char *pw_distribution_path = argv[7];
     StrengthMap password_strengths;
     PGV partial_guess_data;
-    LOG(INFO) << "Loading partial guess metrics"
+    LOG(INFO) << "Loading partial guess metrics";
     partial_guess_data = get_pguess_metrics(pw_distribution_path);
     (void) compute_strength_unseen(partial_guess_data);
     password_strengths = make_strength_map(partial_guess_data);
-    LOG(INFO) << "Loading initial population from " << initial_population_path << endl;
+    LOG(INFO) << "Loading initial population from " << initial_population_path;
     vector<string> rules_vec = RuleLoader::load_rules<string>(initial_population_path);
     vector<Rule> rules;
     for (const auto &r : rules_vec) {
