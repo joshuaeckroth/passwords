@@ -43,26 +43,32 @@ int main(int argc, const char **argv) {
     const char *pw_distribution_path = argv[7];
     StrengthMap password_strengths;
     PGV partial_guess_data;
+    LOG(INFO) << "Loading partial guess metrics"
     partial_guess_data = get_pguess_metrics(pw_distribution_path);
-    //cout << partial_guess_data[0].password << endl; //seg fault
-    //(void) compute_strength_unseen(partial_guess_data); //seg fault
+    (void) compute_strength_unseen(partial_guess_data);
     password_strengths = make_strength_map(partial_guess_data);
-    LOG(INFO) << "*** Loading initial population from " << initial_population_path << endl;
+    LOG(INFO) << "Loading initial population from " << initial_population_path << endl;
     vector<string> rules_vec = RuleLoader::load_rules<string>(initial_population_path);
     vector<Rule> rules;
     for (const auto &r : rules_vec) {
         rules.emplace_back(r);
     }
-    LOG(INFO) << "*** Loading primitives from " << primitives_path;
+    LOG(INFO) << "Loading primitives from " << primitives_path;
     vector<string> primitives = RuleLoader::load_rules<string>(primitives_path);
-    LOG(INFO) << "*** Loading password targets from " << password_targets_path;
+    LOG(INFO) << "Loading password targets from " << password_targets_path;
     vector<string> target_passwords = PasswordLoader::load_passwords(password_targets_path);
     rax *pw_tree_targets = build_target_password_tree(target_passwords);
-    LOG(INFO) << "*** Loading initial passwords from " << initial_passwords_path;
+    LOG(INFO) << "Loading initial passwords from " << initial_passwords_path;
     vector<string> initial_passwords = PasswordLoader::load_passwords(initial_passwords_path);
     rax *pw_tree_initial = build_initial_password_tree(initial_passwords);
-    LOG(INFO) << "*** Starting genetic algorithm with " << cycles << " cycles";
-    Genetic genetic(rules, primitives, target_passwords, pw_tree_targets, initial_passwords, pw_tree_initial, cycles, password_strengths);
+    LOG(INFO) << "Starting genetic algorithm with " << cycles << " cycles";
+    Genetic genetic(rules,
+            primitives,
+            target_passwords,
+            pw_tree_targets,
+            initial_passwords,
+            pw_tree_initial,
+            password_strengths);
     genetic.run(cycles, ("collective" == string(strategy)) ? COLLECTIVE : INDIVIDUAL);
     genetic.delete_trees();
 }
