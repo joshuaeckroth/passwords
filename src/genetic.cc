@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <stdexcept>
 #include <set>
 #include <iostream>
 #include <fstream>
@@ -6,6 +7,7 @@
 #include <random>
 #include <utility>
 #include <thread>
+#include <mutex>
 #include <chrono>
 #include <cmath>
 #include <glog/logging.h>
@@ -22,6 +24,15 @@ extern "C" {
 }
 
 using namespace std;
+
+#ifndef THREAD_COUNT
+const size_t max_thread_count = std::thread::hardware_concurrency();
+#else
+// if processor supports multiple logical cores per physical core
+// (ex: hyperthreading) this can be manually set to the number of
+// physical cores - TODO: this is a HACK, fix later
+const size_t max_thread_count = THREAD_COUNT;
+#endif
 
 Genetic::Genetic(
         vector<Rule> &rules, // initial pop
@@ -79,15 +90,15 @@ void Genetic::add_to_population(Rule &rule, const Rule& parent_a, const Rule& pa
 }
 
 //make village fitness the RPP
-const VillageFitness Genetic::evaluate_population_fitness(vector<Rule> pop) {
+const VillageFitness Genetic::evaluate_population_fitness(vector<Rule> &pop, size_t thread_idx) {
     // rpp is the #rules / 100 * (cracked / hashed)
     // cracked is number of passwords cracked by an entire village (so don't include passwords already cracked by the village)
     // get the number of unique password targets hit by a rule set
     size_t target_count = this->target_passwords.size();
     size_t initial_count = this->initial_passwords.size();
-    static float pct_cracked_no_rule = [&]() -> float {
+    static const float pct_cracked_no_rule = [&]() -> float {
         size_t cracked_count = 0;
-        for (string &pw : this->initial_passwords) {
+        for (const string &pw : this->initial_passwords) {
             if (in_radix(this->pw_tree_targets, pw)) {
                 cracked_count++;
             }
@@ -95,9 +106,17 @@ const VillageFitness Genetic::evaluate_population_fitness(vector<Rule> pop) {
         return (cracked_count / (float) target_count) * 100.0f;
     }();
     std::set<string> unique_hits;
+    // avoid adding initial_passwords to unique hits
+    static const std::set<string> initial_passwords_set = [&]() -> std::set<string> {
+        std::set<string> initial;
+        for (auto &pw : this->initial_passwords) {
+            initial.insert(pw);
+        }
+        return initial;
+    }();
+    const size_t initial_pw_count = this->initial_passwords.size();
     for (auto &rule : pop) {
         for (auto &pw : this->initial_passwords) {
-            unique_hits.insert(pw); // add all initial passwords to unique hits (to subtract from later)
             string new_pw = rule.apply_rule(pw);
             if (new_pw == pw) continue; // noop
             // cout << "rule: " << rule.get_rule_clean() << " applied to " << pw << " yields " << new_pw << endl;
@@ -110,23 +129,25 @@ const VillageFitness Genetic::evaluate_population_fitness(vector<Rule> pop) {
                 );
                 //cout << "old score: " << old_score << ", new score: " << new_score << endl;
                 rule.set_score(new_score); 
-                unique_hits.insert(new_pw);
+                if (!initial_passwords_set.contains(new_pw)) {
+                    unique_hits.insert(new_pw);
+                }
                 //cout << "unique hits: " << unique_hits.size() << endl;
             }
         }
     }
-    int num_cracked = unique_hits.size();
+    int num_cracked = unique_hits.size() + initial_passwords_set.size();
     float rpp_divisor = ((100.0f * ((float) num_cracked / (float) target_count)) - pct_cracked_no_rule);
     float rpp = (float) pop.size() / rpp_divisor;
     double pct_cracked = (100.0f * ((float) num_cracked / (float) target_count));
-    DLOG(INFO) << "--- num cracked: " << num_cracked;
+    DLOG(INFO) << "--- num cracked: " << num_cracked << " for thread: " << thread_idx;
     // parts of the rpp calculation:
-    DLOG(INFO) << "--- pop size: " << pop.size();
-    DLOG(INFO) << "--- target count: " << target_count;
-    DLOG(INFO) << "--- pct cracked: " << pct_cracked;
-    DLOG(INFO) << "--- pct cracked no rule: " << pct_cracked_no_rule;
-    DLOG(INFO) << "--- rpp divider: " << rpp_divisor;
-    DLOG(INFO) << "--- rpp: " << rpp;
+    DLOG(INFO) << "--- pop size: " << pop.size() << " for thread: " << thread_idx;
+    DLOG(INFO) << "--- target count: " << target_count << " for thread: " << thread_idx;
+    DLOG(INFO) << "--- pct cracked: " << pct_cracked << " for thread: " << thread_idx;
+    DLOG(INFO) << "--- pct cracked no rule: " << pct_cracked_no_rule << " for thread: " << thread_idx;
+    DLOG(INFO) << "--- rpp divider: " << rpp_divisor << " for thread: " << thread_idx;
+    DLOG(INFO) << "--- rpp: " << rpp << " for thread: " << thread_idx;
     return VillageFitness(pct_cracked, rpp);
 }
 
@@ -186,21 +207,73 @@ void Genetic::run(size_t num_generations, EvolutionStrategy strategy) {
             LOG(INFO) << "*** Generation: " << idx + 1 << ", village count: " << num_villages;
             // evaluate fitness of each village (RPP)
             typedef std::pair<Village, VillageFitness> vp;
-            std::vector<vp> subgroup_evals;
+            vector<vp> subgroup_evals;
+#ifdef USE_PARALLEL
+            // For some reason trying to write directly to subgroup_evals
+            // from within threads causes silent failures, afai can tell,
+            // it is not ub for different threads to write to the same vec
+            // as long as they're writing to different indices, but I can't
+            // get it to work for any vector of type pair<vector<T>, T2>>,
+            // even simple ones like pair<vector<int>, int>. Writing to
+            // dynamically allocated memory (sg_evals) and then moving the
+            // elements to a vec later works.
+            vp *sg_evals = (vp*) malloc(num_villages * sizeof(vp));
+            memset(sg_evals, 0, num_villages * sizeof(vp));
+            vector<std::thread> village_fitness_threads;
+            LOG(INFO) << "Evaluating population fitness for villages";
+//            benchmark(
+//            [&]() -> void {
+            for (size_t vidx = 0; vidx < num_villages; vidx++) {
+                std::thread t(
+                    [&](size_t i) {
+                        Village &v = this->villages[i];
+                        VillageFitness fitness = this->evaluate_population_fitness(v, i);
+                        sg_evals[i] = make_pair(std::move(v), fitness);
+                    },
+                    vidx
+                );
+                village_fitness_threads.push_back(std::move(t));
+            }
+            for (auto &thread : village_fitness_threads) {
+                thread.join();
+            }
+            for (size_t vidx = 0; vidx < num_villages; vidx++) {
+                subgroup_evals.push_back(std::move(sg_evals[vidx]));
+            }
+            free(sg_evals);
+//            }
+//            , "evaluating village fitness", 1);
             size_t j = 1;
+            for (auto &eval : subgroup_evals) {
+                VillageFitness &fitness = eval.second;
+                LOG(INFO) << "Village " << j << " fitness: " << fitness.to_string();
+                stats_out << idx + 1 << "\t" << j
+                    << "\t" << fitness.get_cracked_pct()
+                    << "\t" << fitness.get_rpp() << endl;
+                stats_out.flush();
+                j += 1;
+            }
+#else
+            size_t j = 1;
+//            benchmark([&]() -> void {
             for (auto &village : this->villages) {
-                LOG(INFO) << "*** Evaluating population fitness for village: " << j;
-                VillageFitness fitness = this->evaluate_population_fitness(village);
+                LOG(INFO) << "Evaluating population fitness for village: " << j;
+                VillageFitness fitness = this->evaluate_population_fitness(village, 0);
                 LOG(INFO) << "Village fitness: " << fitness.to_string();
                 stats_out << idx + 1 << "\t" << j << "\t" << fitness.get_cracked_pct() << "\t" << fitness.get_rpp() << endl;
                 stats_out.flush();
                 subgroup_evals.push_back(make_pair(std::move(village), fitness));
                 j += 1;
             }
+//            }
+//            , "evaluating village fitness", 1);
+#endif
             this->villages.clear();
-            std::sort(subgroup_evals.begin(), subgroup_evals.end(), [](vp a, vp b) {
+            std::sort(subgroup_evals.begin(), subgroup_evals.end(),
+                [](vp a, vp b) {
                     return a.second > b.second;
-                    });
+                }
+            );
             for (auto &p : subgroup_evals) {
                 this->villages.push_back(std::move(p.first));
             }
@@ -224,14 +297,6 @@ void Genetic::run(size_t num_generations, EvolutionStrategy strategy) {
              */
             vector<vector<pair<Rule, Rule>>> all_parents; // parents from each village
 #ifdef USE_PARALLEL
-#ifndef THREAD_COUNT
-            static size_t max_thread_count = std::thread::hardware_concurrency();
-#else
-            // if processor supports multiple logical cores per physical core
-            // (ex: hyperthreading) this can be manually set to the number of
-            // physical cores - TODO: this is a HACK, fix later
-            static size_t max_thread_count = THREAD_COUNT;
-#endif
             all_parents.reserve(num_villages);
             std::vector<std::thread> threads;
             // cout << "*** Creating worker threads for parent selection..." << endl;

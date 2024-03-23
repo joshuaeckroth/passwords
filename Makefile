@@ -5,7 +5,7 @@ CXXFLAGS += -DUSE_PARALLEL
 endif
 
 ifdef DO_PROFILE
-CXXFLAG += -pg
+CXXFLAGS += -pg
 endif
 
 ifdef THREAD_COUNT

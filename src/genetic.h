@@ -63,7 +63,7 @@ class Genetic {
         void mate_individuals (std::vector<std::pair<Rule, Rule>>);
         std::vector<Rule> crossover(const std::pair<Rule, Rule>&);
         float evaluate_fitness(const Rule&, const Rule&, const Rule&, const int&);
-        const VillageFitness evaluate_population_fitness(std::vector<Rule>);
+        const VillageFitness evaluate_population_fitness(std::vector<Rule>&, size_t);
          std::vector<std::pair<Rule, Rule>> select_parents(
             SelectionStrategy s = TOURNAMENT,
             size_t village_idx = 0,
@@ -75,7 +75,7 @@ class Genetic {
         std::vector<Rule> population_vec;
         std::vector<std::string> primitives;
         std::vector<std::string> target_passwords;
-        std::vector<std::string> initial_passwords;
+        const std::vector<std::string> initial_passwords;
         StrengthMap password_strengths;
         rax *pw_tree_targets;
         rax *pw_tree_initial;

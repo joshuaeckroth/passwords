@@ -5,6 +5,9 @@
 #include <sstream>
 #include <iomanip>
 #include <random>
+#include <chrono>
+#include <ctime>
+#include <glog/logging.h>
 #include "util.h"
 
 extern "C" {
@@ -34,6 +37,18 @@ size_t random_integer(size_t a, size_t b) {
 
 bool in_radix(rax *tree, std::string s) {
     return raxFind(tree, (unsigned char*) s.c_str(), s.size() + 1) != raxNotFound;
+}
+
+void benchmark(std::function<void(void)> cb, std::string tag, size_t n) {
+    auto start = std::chrono::system_clock::now();
+    for (size_t idx = 0; idx < n; idx++) {
+        cb();
+    }   
+    auto end = std::chrono::system_clock::now();
+    std::chrono::duration<double> elapsed_seconds = end - start;
+    DLOG(INFO) << "Ran " << tag << " " << n
+        << " times in " << elapsed_seconds.count()
+        << " seconds.";
 }
 
 //size_t random_poisson(size_t a, size_t b) {

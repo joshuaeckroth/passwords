@@ -4,6 +4,7 @@
 #include <string>
 #include <iostream>
 #include <climits>
+#include <functional>
 
 extern "C" {
 #include <rax.h>
@@ -55,5 +56,7 @@ void print_seq(T seq, int limit = INT_MAX) {
 size_t random_integer(size_t, size_t);
 
 bool in_radix(rax*, std::string);
+
+void benchmark(std::function<void(void)>, std::string, size_t);
 
 #endif /* UTIL_H */
