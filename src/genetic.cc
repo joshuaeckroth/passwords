@@ -295,17 +295,19 @@ void Genetic::run(size_t num_generations, EvolutionStrategy strategy) {
              * individual fitness we care about the strength
              * of passwords cracked by a rule
              */
+            typedef vector<pair<Rule, Rule>> Parents;
             vector<vector<pair<Rule, Rule>>> all_parents; // parents from each village
 #ifdef USE_PARALLEL
-            all_parents.reserve(num_villages);
+            //all_parents.reserve(num_villages);
+            Parents *all_ps = (Parents*) malloc(num_villages * sizeof(Parents));
+            memset(all_ps, 0, num_villages * sizeof(Parents));
             std::vector<std::thread> threads;
             // cout << "*** Creating worker threads for parent selection..." << endl;
             for (size_t vidx = 0; vidx < num_villages; vidx++) {
                 // cout << "*** Creating thread " << vidx + 1 << endl;
                 std::thread t(
                     [&](size_t idx) {
-                        auto parents = this->select_parents(TOURNAMENT, idx);
-                        all_parents[idx] = parents;
+                        all_ps[idx] = std::move(this->select_parents(TOURNAMENT, idx, num_villages));
                     },
                     vidx
                 );
@@ -314,7 +316,10 @@ void Genetic::run(size_t num_generations, EvolutionStrategy strategy) {
             for (auto &thread : threads) {
                 thread.join();
             }
-            // cout << "*** All threads joined..." << endl;
+            for (size_t vidx = 0; vidx < num_villages; vidx++) {
+                all_parents.push_back(std::move(all_ps[vidx]));
+            }
+            free(all_ps);
 #else
             for (size_t vidx = 0; vidx < num_villages; vidx++) {
                 auto parents = this->select_parents(TOURNAMENT, vidx, num_villages);
@@ -395,7 +400,7 @@ vector<pair<Rule, Rule>> Genetic::select_parents(SelectionStrategy select_strat,
         size_t tournament_count = (size_t) (((float) pop_size) * POPULATION_GROWTH_RATE);
         size_t tournament_size = (size_t) (pop_size * TOURNAMENT_PCT);
         Village mating_pool;
-        LOG(INFO) << "*** Running tournaments...";
+        LOG(INFO) << "Running tournaments for village: " << village_idx;
         for (size_t idx = 0; idx < tournament_count * 2; idx++) {
             Village shuffled(pop);
             unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
@@ -410,27 +415,21 @@ vector<pair<Rule, Rule>> Genetic::select_parents(SelectionStrategy select_strat,
             }
             mating_pool.push_back(top);
         }
-        LOG(INFO) << "*** Ran tournaments...";
+        LOG(INFO) << "Ran tournaments for village: " << village_idx;
         vector<pair<Rule, Rule>> mating_pairs;
+        DLOG(INFO) << "Doing migrations for village: " << village_idx;
         for (size_t idx = 0; idx < tournament_count; idx++) {
             // for whatever mutation chance, make second parent from a random village and random index
             bool do_migration = random_integer(1, 100) <= (size_t) (100 * MIGRATION_CHANCE);
-            cout << "village count: " << village_count << endl;
-            cout << "village index: " << village_idx << endl;
             if (do_migration) {
                 size_t rand;
                 do {
                     rand = random_integer(0, village_count - 1);
                 } while (rand == village_idx);
-                //size_t rand = random_integer(0, village_count-1); // exclude village index value
-                cout << "migrating with random village: " << rand << endl; // this didn't always print
-                Village migration_pool = this->villages[rand]; //this isn't always assigning a village?
-                cout << "after migration pool created" << endl;
-                size_t pool_size = migration_pool.size();
-                mating_pairs.push_back(make_pair(mating_pool[idx], migration_pool[random_integer(0, pool_size-1)]));
-                cout << "migrated parents pushed" << endl;
+                size_t pool_size = this->villages[rand].size();
+                mating_pairs.push_back(make_pair(mating_pool[idx],
+                            this->villages[rand][random_integer(0, pool_size-1)]));
             } else {
-                cout << "no migration" << endl;
                 mating_pairs.push_back(make_pair(mating_pool[idx], mating_pool[tournament_count + idx]));
             }
         }
