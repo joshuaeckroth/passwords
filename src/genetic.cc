@@ -211,7 +211,7 @@ void Genetic::run(size_t num_generations, EvolutionStrategy strategy) {
         LOG(ERROR) << "Failed to open genetic_stats.tsv for writing";
         return;
     }
-    stats_out << "generation\tvillage\tfitness_cracked_pct\tfitness_rpp" << endl;
+    stats_out << "generation\tvillage\tvillage_size\tfitness_cracked_pct\tfitness_rpp" << endl;
     if (strategy == COLLECTIVE) {
         /*
          * STEP 1: INITIALIZE POPULATION
@@ -267,7 +267,7 @@ void Genetic::run(size_t num_generations, EvolutionStrategy strategy) {
                 LOG(INFO) << "Village " << j << " fitness: " << fitness.to_string();
                 LOG(INFO) << "Village " << j << " has " << eval.first.size() << " items";
                 stats_out << idx + 1 << "\t" << j
-                    << "\t" << fitness.get_cracked_pct()
+                    << "\t" << eval.first.size() << "\t" << fitness.get_cracked_pct()
                     << "\t" << fitness.get_rpp() << endl;
                 stats_out.flush();
                 j += 1;
@@ -276,10 +276,10 @@ void Genetic::run(size_t num_generations, EvolutionStrategy strategy) {
             size_t j = 1;
             //            benchmark([&]() -> void {
             for (auto &village : this->villages) {
-                LOG(INFO) << "Evaluating population fitness for village: " << j;
+                LOG(INFO) << "Evaluating population fitness for village:  " << j;
                 VillageFitness fitness = this->evaluate_population_fitness(village, 0);
                 LOG(INFO) << "Village fitness: " << fitness.to_string();
-                stats_out << idx + 1 << "\t" << j << "\t" << fitness.get_cracked_pct() << "\t" << fitness.get_rpp() << endl;
+                stats_out << idx + 1 << "\t" << j << "\t" << village.size() << "\t" << fitness.get_cracked_pct() << "\t" << fitness.get_rpp() << endl;
                 stats_out.flush();
                 subgroup_evals.push_back(make_pair(std::move(village), fitness));
                 j += 1;
