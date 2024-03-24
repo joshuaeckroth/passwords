@@ -11,8 +11,8 @@ double VillageFitness::get_rpp() const {
 }
 
 bool VillageFitness::operator>(const VillageFitness& other) const {
-    return ((cracked_pct < other.cracked_pct) && (rpp >= other.rpp) ||
-            (cracked_pct <= other.cracked_pct) && (rpp > other.rpp));
+    return ((this->cracked_pct > other.cracked_pct) && (this->rpp <= other.rpp))
+           || ((this->cracked_pct >= other.cracked_pct) && (this->rpp < other.rpp));
 }
 
 const std::string VillageFitness::to_string() const {

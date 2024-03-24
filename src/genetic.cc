@@ -290,11 +290,14 @@ void Genetic::run(size_t num_generations, EvolutionStrategy strategy) {
             this->villages.clear();
             std::sort(subgroup_evals.begin(), subgroup_evals.end(),
                 [](vp a, vp b) {
-                    return not(a.second > b.second);
+                    return a.second > b.second;
                 }
             );
+            size_t ii = 1;
             for (auto &p : subgroup_evals) {
+                LOG(INFO) << "Fitness for village " << ii << " is " << p.second.to_string();
                 this->villages.push_back(std::move(p.first));
+                ii++;
             }
             subgroup_evals.clear();
             // prune worst-performing villages, stay below VILLAGE_COUNT
