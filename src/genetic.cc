@@ -288,11 +288,11 @@ void Genetic::run(size_t num_generations, EvolutionStrategy strategy) {
             //            , "evaluating village fitness", 1);
 #endif
             this->villages.clear();
-//            std::sort(subgroup_evals.begin(), subgroup_evals.end(),
-//                [](vp a, vp b) {
-//                    return a.second > b.second;
-//                }
-//            );
+            std::sort(subgroup_evals.begin(), subgroup_evals.end(),
+                [](vp a, vp b) {
+                    return not(a.second > b.second);
+                }
+            );
             for (auto &p : subgroup_evals) {
                 this->villages.push_back(std::move(p.first));
             }
@@ -385,18 +385,18 @@ void Genetic::run(size_t num_generations, EvolutionStrategy strategy) {
                 vector<pair<Rule, Rule>> parents; // new parent combinations, where parents from different villages
                 cout << "Creating migrated parent village ..." << endl;
                 //go through both villages, create new rule pairs by index, add to migrated village
-                for (size_t k = 0; k < first_parents.size(); k++) {
+                for (size_t k = 0; k < std::min(first_parents.size(), second_parents.size()); k++) {
                     auto p1_rule = first_parents[k].first;
                     auto p1_clean = p1_rule.get_rule_clean();
                     auto p2_rule = second_parents[k].first;
                     auto p2_clean = p2_rule.get_rule_clean();
                     pair<Rule, Rule> migrated_parents = make_pair(p1_rule, p2_rule);
-                    cout << "Parent 1: " << p1_clean << " from Village " << 0 << " and "
-                        << "Parent 2: " << p2_clean << " from Village " << 1 << endl;
+//                    cout << "Parent 1: " << p1_clean << " from Village " << 0 << " and "
+//                        << "Parent 2: " << p2_clean << " from Village " << 1 << endl;
                     parents.push_back(migrated_parents);
                 }
                 // after getting new combo-village parents
-                LOG(INFO) << "*** Crossover for villagess " << 0 << " and " << 1 << "...";
+                LOG(INFO) << "*** Crossover for villages " << 0 << " and " << 1 << "...";
                 this->villages.push_back(Village());
                 LOG(INFO) << "Number of migrated parents: " << parents.size();
                 mate_individuals(parents, this->villages.size() - 1);
