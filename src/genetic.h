@@ -59,8 +59,8 @@ class Genetic {
         void delete_trees();
     private:
         void add_to_population(Rule&, const Rule&, const Rule&, const int&);
-        void add_to_population(Rule&&);
-        void mate_individuals (std::vector<std::pair<Rule, Rule>>);
+        void add_to_population(Rule&&, size_t);
+        void mate_individuals (std::vector<std::pair<Rule, Rule>>, size_t);
         std::vector<Rule> crossover(const std::pair<Rule, Rule>&);
         float evaluate_fitness(const Rule&, const Rule&, const Rule&, const int&);
         const VillageFitness evaluate_population_fitness(std::vector<Rule>&, size_t);
