@@ -44,6 +44,7 @@ Rule& Rule::operator=(const Rule &r) {
     this->clean_rule = r.clean_rule;
     this->weight = r.weight;
     this->score = r.score;
+    this->tokens = r.tokens;
     return *this;
 }
 

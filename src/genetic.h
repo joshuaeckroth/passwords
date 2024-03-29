@@ -13,7 +13,7 @@ extern "C" {
 #include <rax.h>
 }
 
-#define POPULATION_SIZE 2500
+#define POPULATION_SIZE 100000
 #define VILLAGE_SIZE_MAX POPULATION_SIZE
 #define VILLAGE_COUNT_INITIAL 5
 #define VILLAGE_COUNT_MAX 10
@@ -56,6 +56,7 @@ class Genetic {
         ~Genetic();
         Rule mutate(const Rule&, MutationType);
         void run(size_t, EvolutionStrategy);
+        void dump_results(std::string = "output");
         void delete_trees();
     private:
         void add_to_population(Rule&, const Rule&, const Rule&, const int&);

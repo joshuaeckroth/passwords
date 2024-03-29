@@ -70,6 +70,7 @@ int main(int argc, const char **argv) {
             pw_tree_initial,
             password_strengths);
     genetic.run(cycles, ("collective" == string(strategy)) ? COLLECTIVE : INDIVIDUAL);
+    genetic.dump_results();
     genetic.delete_trees();
     LOG(INFO) << "Program terminated naturally";
 }

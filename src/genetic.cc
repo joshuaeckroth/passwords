@@ -611,6 +611,31 @@ rax *build_initial_password_tree(const vector<string>& initial_passwords) {
     return pw_tree_initial;
 }
 
+void Genetic::dump_results(std::string results_dir) {
+    const auto time = std::chrono::system_clock::now();
+    for (size_t idx = 0; idx < this->villages.size(); idx++) {
+        std::string path = results_dir + "/village_"
+            + std::to_string(idx + 1) + "_"
+            + std::to_string(std::chrono::duration_cast<std::chrono::seconds>(time.time_since_epoch()).count())
+            + ".rule";
+        ofstream results_out(path, ios::out);
+        Village &v = this->villages[idx];
+        std::sort(v.begin(), v.end(),
+            [&](Rule r1, Rule r2) {
+                return r1.get_score() > r2.get_score();
+            }
+        );
+        for (size_t j = 0; j < v.size(); j++) {
+            auto tokens = v[j].get_tokens();
+            for (const auto &token : tokens) {
+                results_out << token << ' ';
+            }
+            results_out << endl;
+        }
+        results_out.flush();
+    }
+}
+
 void Genetic::delete_trees() {
     raxIterator it;
     raxStart(&it, pw_tree_targets);
